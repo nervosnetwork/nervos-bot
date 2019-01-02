@@ -1,14 +1,41 @@
+require 'octokit'
 require 'logger'
+require 'jwt'
+require 'time'
+require 'openssl'
 
 class GithubBot
+  PRIVATE_KEY = OpenSSL::PKey::RSA.new(ENV['GITHUB_PRIVATE_KEY'].gsub('\n', "\n"))
+  APP_IDENTIFIER = ENV['GITHUB_APP_IDENTIFIER']
+
   attr_reader :logger
-  attr_reader :api_client
+  attr_reader :app_client
   attr_reader :installation_client
 
   def initialize(opts)
-    @api_client = opts[:api_client]
-    @installation_client = opts[:installation_client]
     @logger = opts.fetch(:logger, Logger.new(STDOUT))
+
+    payload = {
+      iat: Time.now.to_i,
+      exp: Time.now.to_i + (10 * 60),
+      iss: opts.fetch(:app_identifier, APP_IDENTIFIER)
+    }
+    jwt = JWT.encode(payload, opts.fetch(:private_key, PRIVATE_KEY), 'RS256')
+    @app_client = Octokit::Client.new(bearer_token: jwt)
+  end
+
+  def authenticate_installation(org_or_installation_id)
+    if org_or_installation_id.is_a?(Integer)
+      installation_id = org_or_installation_id
+    else
+      installation_id = app_client.find_organization_installation(org_or_installation_id)[:id]
+    end
+
+    installation_token = app_client.create_app_installation_access_token(
+      installation_id, 
+      accept: 'application/vnd.github.machine-man-preview+json' 
+    )[:token]
+    @installation_client = Octokit::Client.new(bearer_token: installation_token)
   end
 
   def on_event(event_type, payload)
