@@ -3,6 +3,7 @@ require 'logger'
 require 'jwt'
 require 'time'
 require 'openssl'
+require 'base64'
 
 class GithubBot
   APP_IDENTIFIER = ENV['GITHUB_APP_IDENTIFIER']
@@ -26,7 +27,11 @@ class GithubBot
     }
     private_key = opts[:private_key]
     if private_key.nil?
-      private_key = OpenSSL::PKey::RSA.new(ENV['GITHUB_PRIVATE_KEY'].gsub('\n', "\n"))
+      lines = ['-----BEGIN RSA PRIVATE KEY-----'].concat(
+        ENV['GITHUB_PRIVATE_KEY'].chars.each_slice(64).map(&:join)
+      )
+      lines.push('-----END RSA PRIVATE KEY-----')
+      private_key = OpenSSL::PKey::RSA.new(lines.join("\n"))
     end
     jwt = JWT.encode(payload, private_key, 'RS256')
     @app_client = Octokit::Client.new(bearer_token: jwt)

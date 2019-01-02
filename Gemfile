@@ -9,3 +9,8 @@ gem 'puma'
 gem 'dotenv'
 gem 'jwt'
 gem 'octokit'
+gem 'telegram-bot-ruby'
+
+group :development do
+  gem 'mina'
+end
