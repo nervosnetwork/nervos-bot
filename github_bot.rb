@@ -5,14 +5,18 @@ require 'time'
 require 'openssl'
 
 class GithubBot
-  PRIVATE_KEY = OpenSSL::PKey::RSA.new(ENV['GITHUB_PRIVATE_KEY'].gsub('\n', "\n"))
   APP_IDENTIFIER = ENV['GITHUB_APP_IDENTIFIER']
+  PREVIEW_HEADER = { accept: 'application/vnd.github.machine-man-preview+json' }
 
   attr_reader :logger
   attr_reader :app_client
   attr_reader :installation_client
 
-  def initialize(opts)
+  # github_bot = GithubBot.new
+  # github_bot.authenticate_installation('nervosnetwork')
+  # github_bot.installation_client.create_issue('nervosnetwork/nervos-bot', 'test', 'client')
+  def initialize(opts = nil)
+    opts ||= {}
     @logger = opts.fetch(:logger, Logger.new(STDOUT))
 
     payload = {
@@ -20,7 +24,11 @@ class GithubBot
       exp: Time.now.to_i + (10 * 60),
       iss: opts.fetch(:app_identifier, APP_IDENTIFIER)
     }
-    jwt = JWT.encode(payload, opts.fetch(:private_key, PRIVATE_KEY), 'RS256')
+    private_key = opts[:private_key]
+    if private_key.nil?
+      private_key = OpenSSL::PKey::RSA.new(ENV['GITHUB_PRIVATE_KEY'].gsub('\n', "\n"))
+    end
+    jwt = JWT.encode(payload, private_key, 'RS256')
     @app_client = Octokit::Client.new(bearer_token: jwt)
   end
 
@@ -28,12 +36,12 @@ class GithubBot
     if org_or_installation_id.is_a?(Integer)
       installation_id = org_or_installation_id
     else
-      installation_id = app_client.find_organization_installation(org_or_installation_id)[:id]
+      installation_id = app_client.find_organization_installation(org_or_installation_id, PREVIEW_HEADER)[:id]
     end
 
     installation_token = app_client.create_app_installation_access_token(
       installation_id, 
-      accept: 'application/vnd.github.machine-man-preview+json' 
+      PREVIEW_HEADER
     )[:token]
     @installation_client = Octokit::Client.new(bearer_token: installation_token)
   end
