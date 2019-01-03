@@ -26,7 +26,7 @@ def on_message(bot, message)
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
-      text: render_issue(issue(REPO, number))
+      text: render_issue(issue)
     )
   when %r{^#(\d+)}
     number = $1
@@ -34,7 +34,7 @@ def on_message(bot, message)
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
-      text: render_issue(issue(REPO, number))
+      text: render_issue(get_issue(REPO, number))
     )
   when %r{^https://github.com/(nervosnetwork/[^/]+-internal)/issues/(\d+)}
     repo = $1
@@ -43,12 +43,12 @@ def on_message(bot, message)
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
-      text: render_issue(issue(repo, number))
+      text: render_issue(get_issue(repo, number))
     )
   end
 end
 
-def issue(repo, number)
+def get_issue(repo, number)
   github_bot = GithubBot.new
   github_bot.authenticate_installation(ORG)
   github_bot.installation_client.issue(repo, number)
