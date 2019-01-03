@@ -62,10 +62,31 @@ class GithubBot
     case payload['action']
     when 'created'
       case payload['comment']['body']
-      when /^@nervos-bot\s+publish/
-        publish_issue(payload)
+      when /^@nervos-bot\s+([^\s]+)\s*(.*)/
+        command = $1
+        args = $2
+        case command
+        when 'publish'
+          publish_issue(payload)
+        when 'help'
+          list_commands(payload)
+        end
       end
     end
+  end
+
+  def list_commands(payload)
+    commands = [
+    ]
+    if /(.*)-internal/.match(payload['repository']['full_name'])
+      commands.push("- `publish`: publish this issue to public repo")
+    end
+
+    installation_client.add_comment(
+      payload['repository']['id'],
+      payload['issue']['number'],
+      commands.join("\n")
+    )
   end
 
   def publish_issue(payload)
