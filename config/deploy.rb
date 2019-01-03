@@ -47,7 +47,7 @@ task :setup do
     command %{rsync .env Procfile "#{fetch(:domain)}:#{fetch(:shared_path)}"}
   end
 
-  command %{sudo foreman export systemd /etc/systemd/system -u $USER -a #{fetch(:application_name)} -p 8000 -d #{fetch(:current_path)} -e #{fetch(:shared_path)}/.env -f #{fetch(:shared_path)}/Procfile -l #{fetch(:shared_path)}/log}
+  command %{sudo foreman export systemd /etc/systemd/system -u $USER -a #{fetch(:application_name)} -p 8000 -d #{fetch(:current_path)} -e /dev/null -f #{fetch(:shared_path)}/Procfile -l #{fetch(:shared_path)}/log}
   command %{sudo systemctl enable #{fetch(:application_name)}.target}
   # command %{rbenv install 2.3.0 --skip-existing}
 end
