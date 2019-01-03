@@ -28,7 +28,7 @@ def on_message(bot, message)
     bot.api.send_message(chat_id: message.chat.id, text: "Bye, #{message.from.first_name}")
   when '/help'
     bot.api.send_message(chat_id: message.chat.id, text: HELP)
-  when %r{\A/new-issue\s}
+  when %r{\A/newissue\s}
     title, body = message.text.split(/[\r\n]+/, 2)
     title = title.split(/\s/, 2).last
     github_bot = GithubBot.new
