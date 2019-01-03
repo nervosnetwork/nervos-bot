@@ -14,35 +14,45 @@ def on_message(bot, message)
     bot.api.send_message(chat_id: message.chat.id, text: "Hello, #{message.from.first_name}")
   when '/stop'
     bot.api.send_message(chat_id: message.chat.id, text: "Bye, #{message.from.first_name}")
+  when /\A/issue /
+    title, body = message.text.split(/[\r\n]+/, 2)
+    github_bot = GithubBot.new
+    github_bot.authenticate_installation('nervosnetwork')
+    issue = github_bot.installation_client.create_issue('nervosnetwork/ckb-internal', title, body)
+
+    bot.api.send_message(
+      chat_id: message.chat.id,
+      parse_mode: 'Markdown',
+      text: render_issue(issue(repo, number))
+    )
   when %r{^#(\d+)}
     repo = 'nervosnetwork/ckb-internal'
     number = $1
 
-    text = get_issue_detail(repo, number)
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
-      text: text
+      text: render_issue(issue(repo, number))
     )
   when %r{^https://github.com/(nervosnetwork/[^/]+-internal)/issues/(\d+)}
     repo = $1
     number = $2
 
-    text = get_issue_detail(repo, number)
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
-      text: text
+      text: render_issue(issue(repo, number))
     )
   end
 end
 
-def get_issue_detail(repo, number)
+def issue(repo, number)
   github_bot = GithubBot.new
   github_bot.authenticate_installation('nervosnetwork')
+  github_bot.installation_client.issue(repo, number)
+end
 
-  issue = github_bot.installation_client.issue(repo, number)
-
+def render_issue(bot, issue)
   <<-MD
 [\##{issue['number']}](#{issue['html_url']}) #{issue['title']}
 
