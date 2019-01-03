@@ -44,7 +44,7 @@ def get_issue_detail(repo, number)
   issue = github_bot.installation_client.issue(repo, number)
 
   <<-MD
-[#{issue['number']}](#{issue['html_url']}) #{issue['title']}
+[\##{issue['number']}](#{issue['html_url']}) #{issue['title']}
 
 #{issue['body']}
 
