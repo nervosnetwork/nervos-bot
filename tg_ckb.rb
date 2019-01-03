@@ -21,7 +21,7 @@ def on_message(bot, message)
     title = title.split(/\s/, 2).last
     github_bot = GithubBot.new
     github_bot.authenticate_installation(ORG)
-    issue = github_bot.installation_client.create_issue(REPO)
+    issue = github_bot.installation_client.create_issue(REPO, title, body.to_s)
 
     bot.api.send_message(
       chat_id: message.chat.id,
