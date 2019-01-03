@@ -4,10 +4,10 @@ require 'logger'
 require_relative 'github_bot'
 
 token = ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN')
-groups = ENV['TELEGRAM_CKB_GROUPS'].to_s.split(',').map(&:to_i)
+ALLOWED_GROUPS = ENV['TELEGRAM_CKB_GROUPS'].to_s.split(',').map(&:to_i)
 
 def on_message(bot, message)
-  return unless groups.include?(message.chat.id)
+  return unless ALLOWED_GROUPS.include?(message.chat.id)
 
   case message.text
   when '/start'
