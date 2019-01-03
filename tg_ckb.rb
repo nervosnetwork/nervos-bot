@@ -8,6 +8,16 @@ ORG = 'nervosnetwork'
 REPO = 'nervosnetwork/ckb-internal'
 token = ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN')
 
+HELP = <<-TEXT
+/issue #number
+
+:Show issue detail.
+
+/newissue title
+
+:Create an issue, the first line is the title, and the remaining lines are the body.
+TEXT
+
 def on_message(bot, message)
   return unless ALLOWED_GROUPS.include?(message.chat.id)
 
@@ -16,7 +26,9 @@ def on_message(bot, message)
     bot.api.send_message(chat_id: message.chat.id, text: "Hello, #{message.from.first_name}")
   when '/stop'
     bot.api.send_message(chat_id: message.chat.id, text: "Bye, #{message.from.first_name}")
-  when %r{\A/issue\s}
+  when '/help'
+    bot.api.send_message(chat_id: message.chat.id, text: HELP)
+  when %r{\A/new-issue\s}
     title, body = message.text.split(/[\r\n]+/, 2)
     title = title.split(/\s/, 2).last
     github_bot = GithubBot.new
@@ -28,22 +40,13 @@ def on_message(bot, message)
       parse_mode: 'Markdown',
       text: render_issue(issue)
     )
-  when %r{^#(\d+)}
+  when %r{\A/issue\s+#(\d+)}
     number = $1
 
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
       text: render_issue(get_issue(REPO, number))
-    )
-  when %r{^https://github.com/(nervosnetwork/[^/]+-internal)/issues/(\d+)}
-    repo = $1
-    number = $2
-
-    bot.api.send_message(
-      chat_id: message.chat.id,
-      parse_mode: 'Markdown',
-      text: render_issue(get_issue(repo, number))
     )
   end
 end
