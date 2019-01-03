@@ -3,8 +3,10 @@ require 'dotenv/load'
 require 'logger'
 require_relative 'github_bot'
 
-token = ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN')
 ALLOWED_GROUPS = ENV['TELEGRAM_CKB_GROUPS'].to_s.split(',').map(&:to_i)
+ORG = 'nervosnetwork'
+REPO = 'nervosnetwork/ckb-internal'
+token = ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN')
 
 def on_message(bot, message)
   return unless ALLOWED_GROUPS.include?(message.chat.id)
@@ -18,22 +20,21 @@ def on_message(bot, message)
     title, body = message.text.split(/[\r\n]+/, 2)
     title = title.split(/\s/, 2).last
     github_bot = GithubBot.new
-    github_bot.authenticate_installation('nervosnetwork')
-    issue = github_bot.installation_client.create_issue('nervosnetwork/ckb-internal', title, body)
+    github_bot.authenticate_installation(ORG)
+    issue = github_bot.installation_client.create_issue(REPO)
 
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
-      text: render_issue(issue(repo, number))
+      text: render_issue(issue(REPO, number))
     )
   when %r{^#(\d+)}
-    repo = 'nervosnetwork/ckb-internal'
     number = $1
 
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
-      text: render_issue(issue(repo, number))
+      text: render_issue(issue(REPO, number))
     )
   when %r{^https://github.com/(nervosnetwork/[^/]+-internal)/issues/(\d+)}
     repo = $1
@@ -49,7 +50,7 @@ end
 
 def issue(repo, number)
   github_bot = GithubBot.new
-  github_bot.authenticate_installation('nervosnetwork')
+  github_bot.authenticate_installation(ORG)
   github_bot.installation_client.issue(repo, number)
 end
 
