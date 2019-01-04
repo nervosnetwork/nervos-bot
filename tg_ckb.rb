@@ -9,13 +9,8 @@ REPO = 'nervosnetwork/ckb-internal'
 token = ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN')
 
 HELP = <<-TEXT
-/issue #number
-
-:Show issue detail.
-
-/newissue title
-
-:Create an issue, the first line is the title, and the remaining lines are the body.
+/issue - show the issue: /issue number
+/newissue - create an issue: /newissue title
 TEXT
 
 def on_message(bot, message)
@@ -38,9 +33,9 @@ def on_message(bot, message)
     bot.api.send_message(
       chat_id: message.chat.id,
       parse_mode: 'Markdown',
-      text: render_issue(issue)
+      text: render_issue(issue, false)
     )
-  when %r{\A/issue\s+#(\d+)}
+  when %r{\A/issue\s+#?(\d+)}
     number = $1
 
     bot.api.send_message(
@@ -57,9 +52,12 @@ def get_issue(repo, number)
   github_bot.installation_client.issue(repo, number)
 end
 
-def render_issue(issue)
+def render_issue(issue, include_details = true)
+  title = "[\##{issue['number']}](#{issue['html_url']}) #{issue['title']}"
+  return title unless include_details
+
   <<-MD
-[\##{issue['number']}](#{issue['html_url']}) #{issue['title']}
+#{title}
 
 #{issue['body']}
 
