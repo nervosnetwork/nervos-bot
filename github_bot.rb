@@ -20,14 +20,23 @@ class GithubBot
     opts ||= {}
     @logger = opts.fetch(:logger, Logger.new(STDOUT))
 
-    @auto_column_cards = {}
+    @issues_to_column = {}
+    @pull_requests_to_column = {}
     ENV.each_pair do |k, v|
-      if k =~ /\AGITHUB_AUTO_COLUMN_CARDS_(\d+)\z/
+      case k
+      when /\AGITHUB_ISSUES_TO_COLUMN_(\d+)\z/
         col_id = $1.to_i
         v.split(',').each do |project|
-          @auto_column_cards[project] ||= []
-          @auto_column_cards[project] << col_id
+          @issues_to_column[project] ||= []
+          @issues_to_column[project] << col_id
         end
+      when /\AGITHUB_PULL_REQUESTS_TO_COLUMN_(\d+)\z/
+        col_id = $1.to_i
+        v.split(',').each do |project|
+          @pull_requests_to_column[project] ||= []
+          @pull_requests_to_column[project] << col_id
+        end
+      end
       end
     end
 
@@ -89,7 +98,14 @@ class GithubBot
   def on_issues(payload)
     case payload['action']
     when 'opened'
-      auto_create_project_card(payload) if payload['issue']['pull_request'].nil?
+      add_issues_to_column(payload)
+    end
+  end
+
+  def on_pull_request(payload)
+    case payload['action']
+    when 'opened'
+      add_pull_requests_to_column(payload)
     end
   end
 
@@ -142,9 +158,15 @@ class GithubBot
     )
   end
 
-  def auto_create_project_card(payload)
-    @auto_column_cards.fetch(payload['repository']['name'], []).each do |col_id|
+  def add_issues_to_column(payload)
+    @issues_to_column.fetch(payload['repository']['name'], []).each do |col_id|
       installation_client.create_project_card(col_id, content_id: payload['issue']['id'], content_type: 'Issue')
+    end
+  end
+
+  def add_pull_requests_to_column(payload)
+    @pull_requests_to_column.fetch(payload['repository']['name'], []).each do |col_id|
+      installation_client.create_project_card(col_id, content_id: payload['pull_request']['id'], content_type: 'Issue')
     end
   end
 end
