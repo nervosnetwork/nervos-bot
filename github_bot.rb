@@ -88,7 +88,7 @@ class GithubBot
 
   def on_issues(payload)
     case payload['action']
-    when 'opened':
+    when 'opened'
       auto_create_project_card(payload) if payload['issue']['pull_request'].nil?
     end
   end
