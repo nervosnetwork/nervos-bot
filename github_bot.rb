@@ -37,7 +37,6 @@ class GithubBot
           @pull_requests_to_column[project] << col_id
         end
       end
-      end
     end
 
     payload = {
