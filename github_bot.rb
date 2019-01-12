@@ -165,7 +165,7 @@ class GithubBot
 
   def add_pull_requests_to_column(payload)
     @pull_requests_to_column.fetch(payload['repository']['name'], []).each do |col_id|
-      installation_client.create_project_card(col_id, content_id: payload['pull_request']['id'], content_type: 'Issue')
+      installation_client.create_project_card(col_id, content_id: payload['pull_request']['id'], content_type: 'PullRequest')
     end
   end
 end
