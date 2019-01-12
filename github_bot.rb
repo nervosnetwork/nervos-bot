@@ -90,6 +90,11 @@ class GithubBot
         when 'help'
           list_commands(payload)
         end
+      when /^bors:? /
+        repository = payload['repository']
+        repository_id = repository['id']
+        issue = payload['issue']
+        installation_client.add_labels_to_an_issue(repository_id, issue['number'], ['s:waiting-for-bors'])
       end
     end
   end
