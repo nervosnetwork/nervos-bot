@@ -108,18 +108,6 @@ class GithubBot
     end
   end
 
-  def on_check_run(payload)
-    case payload['action']
-    when 'created'
-      if payload['check_run']['name'] == 'bors'
-        repo = payload['repository']['id']
-        payload['check_run']['pull_requests'].each do |pr|
-          installation_client.add_labels_to_an_issue(repo, pr['numer'], ['s:wait-bors'])
-        end
-      end
-    end
-  end
-
   def list_commands(payload)
     commands = [
     ]
