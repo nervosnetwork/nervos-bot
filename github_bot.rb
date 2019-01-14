@@ -86,7 +86,7 @@ class GithubBot
         args = $2
         case command
         when 'publish'
-          publish_issue(payload)
+          publish_issue(payload, args)
         when 'help'
           list_commands(payload)
         end
@@ -127,7 +127,9 @@ class GithubBot
     )
   end
 
-  def publish_issue(payload)
+  def publish_issue(payload, publish_to)
+    publish_to = nil if publish_to == ''
+
     repository = payload['repository']
     repository_id = repository['id']
     issue = payload['issue']
@@ -135,13 +137,15 @@ class GithubBot
 
     return unless issue['state'] == 'open'
 
-    match = /(.*)-internal/.match(repository['full_name'])
-    return unless match
+    if publish_to.nil?
+      match = /(.*)-internal/.match(repository['full_name'])
+      return unless match
 
-    to_project = match[1]
+      publish_to = match[1]
+    end
 
     transfered = installation_client.create_issue(
-      to_project,
+      publish_to,
       issue['title'],
       issue['body'],
       assignees: issue['assignees'].map {|u| u['login']},
@@ -149,7 +153,7 @@ class GithubBot
       accept: 'application/vnd.github.symmetra-preview+json'
     )
 
-    logger.info "publish #{repository['full_name']}\##{issue['number']} as #{to_project}\##{transfered['number']}"
+    logger.info "publish #{repository['full_name']}\##{issue['number']} as #{publish_to}\##{transfered['number']}"
 
     installation_client.add_comment(
       repository_id,
