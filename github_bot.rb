@@ -110,6 +110,7 @@ class GithubBot
     case payload['action']
     when 'opened'
       add_pull_requests_to_column(payload)
+      try_add_hotfix_label(payload)
     end
   end
 
@@ -175,6 +176,15 @@ class GithubBot
   def add_pull_requests_to_column(payload)
     @pull_requests_to_column.fetch(payload['repository']['name'], []).each do |col_id|
       installation_client.create_project_card(col_id, content_id: payload['pull_request']['id'], content_type: 'PullRequest')
+    end
+  end
+
+  def try_add_hotfix_label(payload)
+    repository = payload['repository']
+    repository_id = repository['id']
+    pull_request = payload['pull_request']
+    if pull_request['base']['ref'].start_with?('rc/')
+      installation_client.add_labels_to_an_issue(repository_id, pull_request['id'], ['hotfix'])
     end
   end
 end
