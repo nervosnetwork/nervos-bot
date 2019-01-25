@@ -1,6 +1,7 @@
 require 'telegram/bot'
 require 'dotenv/load'
 require 'logger'
+require 'commonmarker'
 require_relative 'github_bot'
 
 ALLOWED_GROUPS = ENV['TELEGRAM_CKB_GROUPS'].to_s.split(',').map(&:to_i)
@@ -32,7 +33,7 @@ def on_message(bot, message)
 
     bot.api.send_message(
       chat_id: message.chat.id,
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
       text: render_issue(issue, false)
     )
   when %r{\A/issue\s+#?(\d+)}
@@ -40,7 +41,7 @@ def on_message(bot, message)
 
     bot.api.send_message(
       chat_id: message.chat.id,
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
       text: render_issue(get_issue(REPO, number))
     )
   end
@@ -54,9 +55,9 @@ end
 
 def render_issue(issue, include_details = true)
   title = "[\##{issue['number']}](#{issue['html_url']}) #{issue['title']}"
-  return title unless include_details
+  return CommonMarker.render_html(title, :DEFAULT) unless include_details
 
-  <<-MD
+  CommonMarker.render_html(<<-MD, :DEFAULT)
 #{title}
 
 #{issue['body']}
