@@ -10,7 +10,6 @@ gem 'dotenv'
 gem 'jwt'
 gem 'octokit'
 gem 'telegram-bot-ruby'
-gem 'commonmarker'
 
 group :development do
   gem 'mina'

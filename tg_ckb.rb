@@ -1,7 +1,7 @@
 require 'telegram/bot'
 require 'dotenv/load'
 require 'logger'
-require 'commonmarker'
+require 'cgi'
 require_relative 'github_bot'
 
 ALLOWED_GROUPS = ENV['TELEGRAM_CKB_GROUPS'].to_s.split(',').map(&:to_i)
@@ -54,17 +54,17 @@ def get_issue(repo, number)
 end
 
 def render_issue(issue, include_details = true)
-  title = "[\##{issue['number']}](#{issue['html_url']}) #{issue['title']}"
-  return CommonMarker.render_html(title, :DEFAULT) unless include_details
+  title = "<a href=\"#{issue['html_url']}\">\##{issue['number']}</a> <b>#{CGI::escapeHTML(issue['title'])}</b>"
+  return title unless include_details
 
-  CommonMarker.render_html(<<-MD, :DEFAULT)
+  <<-HTML
 #{title}
 
-#{issue['body']}
+#{CGI::escapeHTML(issue['body'])}
 
-Assignees: #{issue['assignees'].map {|u| u['login']}.join(', ')}
-Labels: #{issue['labels'].map {|l| l['name']}.join(', ')}
-  MD
+<b>Assignees</b>: #{issue['assignees'].map {|u| u['login']}.join(', ')}
+<b>Labels</b>: #{issue['labels'].map {|l| l['name']}.join(', ')}
+  HTML
 end
 
 Telegram::Bot::Client.run(token, logger: Logger.new(STDOUT)) do |bot|
