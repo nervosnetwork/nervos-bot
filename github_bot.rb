@@ -90,7 +90,7 @@ class GithubBot
         when 'help'
           list_commands(payload)
         end
-      when /^bors:? /
+      when /^bors:?\s+r\+/
         repository = payload['repository']
         repository_id = repository['id']
         issue = payload['issue']
