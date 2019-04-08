@@ -40,8 +40,8 @@ class GithubBot
           @pull_requests_to_column[project] ||= []
           @pull_requests_to_column[project] << col_id
         end
-      when /\AGITHUB_PULL_REQUESTS_TO_TG_(\d+)\z/
-        chat_id = $1.to_i
+      when /\AGITHUB_PULL_REQUESTS_TO_TG_(_?\d+)\z/
+        chat_id = $1.gsub(/_/, '-').to_i
         v.split(',').each do |project|
           @pull_requests_to_tg[project] ||= []
           @pull_requests_to_tg[project] << chat_id
