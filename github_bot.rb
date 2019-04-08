@@ -206,7 +206,7 @@ class GithubBot
     pull_request = payload['pull_request']
 
     @pull_requests_to_tg.fetch(payload['repository']['name'], []).each do |chat_id|
-      @tg.send_message(
+      @tg.api.send_message(
         chat_id: chat_id,
         parse_mode: 'HTML',
         text: <<-HTML.gsub(/^ {10}/, '')
