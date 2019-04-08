@@ -4,6 +4,7 @@ require 'jwt'
 require 'time'
 require 'openssl'
 require 'base64'
+require 'telegram/bot'
 
 class GithubBot
   APP_IDENTIFIER = ENV['GITHUB_APP_IDENTIFIER']
@@ -19,9 +20,12 @@ class GithubBot
   def initialize(opts = nil)
     opts ||= {}
     @logger = opts.fetch(:logger, Logger.new(STDOUT))
+    tg_token = opts.fetch('TELEGRAM_CKB_ACCESS_TOKEN', ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN'))
+    @tg = Telegram::Bot::Client.new(tg_token, logger: @logger)
 
     @issues_to_column = {}
     @pull_requests_to_column = {}
+    @pull_requests_to_tg = {}
     ENV.each_pair do |k, v|
       case k
       when /\AGITHUB_ISSUES_TO_COLUMN_(\d+)\z/
@@ -35,6 +39,12 @@ class GithubBot
         v.split(',').each do |project|
           @pull_requests_to_column[project] ||= []
           @pull_requests_to_column[project] << col_id
+        end
+      when /\AGITHUB_PULL_REQUESTS_TO_TG_(\d+)\z/
+        chat_id = $1.to_i
+        v.split(',').each do |project|
+          @pull_requests_to_tg[project] ||= []
+          @pull_requests_to_tg[project] << chat_id
         end
       end
     end
@@ -111,6 +121,10 @@ class GithubBot
     when 'opened'
       add_pull_requests_to_column(payload)
       try_add_hotfix_label(payload)
+    when 'closed'
+      if payload['pull_request']['merged']
+        notify_pull_requests_merged(payload)
+      end
     end
   end
 
@@ -185,6 +199,20 @@ class GithubBot
     pull_request = payload['pull_request']
     if pull_request['base']['ref'].start_with?('rc/')
       installation_client.add_labels_to_an_issue(repository_id, pull_request['id'], ['hotfix'])
+    end
+  end
+
+  def notify_pull_requests_merged(payload)
+    pull_request = payload['pull_request']
+
+    @pull_requests_to_tg.fetch(payload['repository']['name'], []).each do |chat_id|
+      @tg.send_message(
+        chat_id: chat_id,
+        parse_mode: 'HTML',
+        text: <<-HTML.gsub(/^ {10}/, '')
+          <b>PR Merged</b>: <a href="#{pull_request['html_url']}">\##{pull_request['number']}</a> #{CGI::escapeHTML(pull_request['title'])}
+        HTML
+      )
     end
   end
 end
