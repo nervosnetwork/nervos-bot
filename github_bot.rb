@@ -198,7 +198,7 @@ class GithubBot
     repository_id = repository['id']
     pull_request = payload['pull_request']
     if pull_request['base']['ref'].start_with?('rc/')
-      installation_client.add_labels_to_an_issue(repository_id, pull_request['id'], ['hotfix'])
+      installation_client.add_labels_to_an_issue(repository_id, pull_request['number'], ['hotfix'])
     end
   end
 
