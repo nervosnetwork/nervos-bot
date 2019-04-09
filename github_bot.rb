@@ -112,7 +112,13 @@ class GithubBot
   def on_issues(payload)
     case payload['action']
     when 'opened'
-      add_issues_to_column(payload)
+      begin
+        add_issues_to_column(payload)
+      rescue Octokit::UnprocessableEntity => e
+        unless e.response_body.include?('Project already has the associated issue')
+          raise e
+        end
+      end
     end
   end
 
@@ -120,7 +126,13 @@ class GithubBot
     case payload['action']
     when 'opened'
       try_add_hotfix_label(payload)
-      add_pull_requests_to_column(payload)
+      begin
+        add_pull_requests_to_column(payload)
+      rescue Octokit::UnprocessableEntity => e
+        unless e.response_body.include?('Project already has the associated issue')
+          raise e
+        end
+      end
     when 'closed'
       if payload['pull_request']['merged']
         notify_pull_requests_merged(payload)
