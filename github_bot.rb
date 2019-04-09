@@ -119,8 +119,8 @@ class GithubBot
   def on_pull_request(payload)
     case payload['action']
     when 'opened'
-      add_pull_requests_to_column(payload)
       try_add_hotfix_label(payload)
+      add_pull_requests_to_column(payload)
     when 'closed'
       if payload['pull_request']['merged']
         notify_pull_requests_merged(payload)
