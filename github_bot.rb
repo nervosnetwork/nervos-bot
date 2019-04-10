@@ -216,6 +216,7 @@ class GithubBot
 
   def notify_pull_requests_merged(payload)
     pull_request = payload['pull_request']
+    return if pull_request['title'].include?('chore(deps): ')
 
     @pull_requests_to_tg.fetch(payload['repository']['name'], []).each do |chat_id|
       @tg.api.send_message(
