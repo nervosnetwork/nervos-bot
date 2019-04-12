@@ -87,28 +87,6 @@ class GithubBot
     end
   end
 
-  def on_issue_comment(payload)
-    case payload['action']
-    when 'created'
-      case payload['comment']['body']
-      when /^@nervos-bot\s+([^\s]+)\s*(.*)/
-        command = $1
-        args = $2
-        case command
-        when 'publish'
-          publish_issue(payload, args)
-        when 'help'
-          list_commands(payload)
-        end
-      when /^bors:?\s+r[\+=]/
-        repository = payload['repository']
-        repository_id = repository['id']
-        issue = payload['issue']
-        installation_client.add_labels_to_an_issue(repository_id, issue['number'], ['s:waiting-for-bors'])
-      end
-    end
-  end
-
   def on_issues(payload)
     case payload['action']
     when 'opened'
@@ -138,59 +116,6 @@ class GithubBot
         notify_pull_requests_merged(payload)
       end
     end
-  end
-
-  def list_commands(payload)
-    commands = [
-    ]
-    if /(.*)-internal/.match(payload['repository']['full_name'])
-      commands.push("- `publish`: publish this issue to public repo")
-    end
-
-    installation_client.add_comment(
-      payload['repository']['id'],
-      payload['issue']['number'],
-      commands.join("\n")
-    )
-  end
-
-  def publish_issue(payload, publish_to)
-    publish_to = nil if publish_to == ''
-
-    repository = payload['repository']
-    repository_id = repository['id']
-    issue = payload['issue']
-    comment = payload['comment']
-
-    return unless issue['state'] == 'open'
-
-    if publish_to.nil?
-      match = /(.*)-internal/.match(repository['full_name'])
-      return unless match
-
-      publish_to = match[1]
-    end
-
-    transfered = installation_client.create_issue(
-      publish_to,
-      issue['title'],
-      issue['body'],
-      assignees: issue['assignees'].map {|u| u['login']},
-      labels: issue['labels'].map {|l| l['name']}.join(","),
-      accept: 'application/vnd.github.symmetra-preview+json'
-    )
-
-    logger.info "publish #{repository['full_name']}\##{issue['number']} as #{publish_to}\##{transfered['number']}"
-
-    installation_client.add_comment(
-      repository_id,
-      issue['number'],
-      "@#{comment['user']['login']} published as #{transfered['html_url']}"
-    )
-    installation_client.close_issue(
-      repository_id,
-      issue['number']
-    )
   end
 
   def add_issues_to_column(payload)
