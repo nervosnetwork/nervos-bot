@@ -101,6 +101,7 @@ class GithubBot
   end
 
   def on_pull_request(payload)
+    try_add_base_branch_in_pull_request_title(payload)
     case payload['action']
     when 'opened'
       try_add_hotfix_label(payload)
@@ -152,5 +153,30 @@ class GithubBot
         HTML
       )
     end
+  end
+
+  def try_add_base_branch_in_pull_request_title(payload)
+    unless payload['action'] == 'opened' || (payload['changes'] && payload['changes']['title'])
+      return
+    end
+
+    default_branch = payload['repository']['default_branch']
+    base = payload['pull_request']['base']['ref']
+    if base == default_branch
+      return
+    end
+
+    base_tag = "[ᚬ#{base}]"
+    title = payload['pull_request']['title']
+    if title.include?(base_tag)
+      return
+    end
+
+    new_title = [base_tag, title].join(' ')
+    installation_client.update_pull_request(
+      payload['repository']['id'], 
+      payload['pull_request']['number'], 
+      title: new_title
+    )
   end
 end
