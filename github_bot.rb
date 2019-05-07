@@ -192,9 +192,9 @@ class GithubBot
                  else
                    payload['changes']['title']['from']
                  end
-    from_hold = from_title.include?('HOLD') || from_title.incldue?('✋')
+    from_hold = from_title.include?('HOLD') || from_title.include?('✋')
     to_title = payload['pull_request']['title']
-    to_hold = to_title.include?('HOLD') || to_title.incldue?('✋')
+    to_hold = to_title.include?('HOLD') || to_title.include?('✋')
 
     # HOLD
     if !from_hold && to_hold then
@@ -212,7 +212,7 @@ class GithubBot
         payload['repository']['id'],
         payload['pull_request']['number']
       ).each do |review|
-        if review['user']['login'] == 'nervos-bot' && review['state'] == 'REQUEST_CHANGES'
+        if review['user']['login'] == 'nervos-bot[bot]' && review['state'] == 'REQUEST_CHANGES'
           installation_client.dismiss_pull_request_review(
             payload['repository']['id'],
             payload['pull_request']['number'],
