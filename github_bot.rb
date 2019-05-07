@@ -78,6 +78,7 @@ class GithubBot
       PREVIEW_HEADER
     )[:token]
     @installation_client = Octokit::Client.new(bearer_token: installation_token)
+    @installation_client.auto_paginate = true
   end
 
   def on_event(event_type, payload)
@@ -102,6 +103,7 @@ class GithubBot
 
   def on_pull_request(payload)
     try_add_base_branch_in_pull_request_title(payload)
+    try_hold_pull_request(payload)
     case payload['action']
     when 'opened'
       try_add_hotfix_label(payload)
@@ -178,5 +180,47 @@ class GithubBot
       payload['pull_request']['number'], 
       title: new_title
     )
+  end
+
+  def try_hold_pull_request(payload)
+    unless payload['action'] == 'opened' || (payload['changes'] && payload['changes']['title'])
+      return
+    end
+
+    from_title = if payload['action'] == 'opened' then
+                   ''
+                 else
+                   payload['changes']['title']['from']
+                 end
+    from_hold = from_title.include?('HOLD') || from_title.incldue?('✋')
+    to_title = payload['pull_request']['title']
+    to_hold = to_title.include?('HOLD') || to_title.incldue?('✋')
+
+    # HOLD
+    if !from_hold && to_hold then
+      installation_client.create_pull_request_review(
+        payload['repository']['id'],
+        payload['pull_request']['number'],
+        body: 'hold',
+        event: 'REQUEST_CHANGES'
+      )
+    end
+
+    # UNHOLD
+    if from_hold && !to_hold then
+      installation_client.pull_request_reviews(
+        payload['repository']['id'],
+        payload['pull_request']['number']
+      ).each do |review|
+        if review['user']['login'] == 'nervos-bot' && review['state'] == 'REQUEST_CHANGES'
+          installation_client.dismiss_pull_request_review(
+            payload['repository']['id'],
+            payload['pull_request']['number'],
+            review['id'],
+            'unhold'
+          )
+        end
+      end
+    end
   end
 end
