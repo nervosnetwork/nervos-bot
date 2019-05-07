@@ -212,7 +212,7 @@ class GithubBot
         payload['repository']['id'],
         payload['pull_request']['number']
       ).each do |review|
-        if review['user']['login'] == 'nervos-bot[bot]' && review['state'] == 'REQUEST_CHANGES'
+        if review['user']['login'] == 'nervos-bot[bot]' && review['state'] == 'CHANGES_REQUESTED'
           installation_client.dismiss_pull_request_review(
             payload['repository']['id'],
             payload['pull_request']['number'],
