@@ -252,9 +252,6 @@ class GithubBot
       '+1'
     )
 
-    accept = { 
-      accept: 'application/vnd.github.antiope-preview+json'
-    }
     request = {
       accept: 'application/vnd.github.antiope-preview+json',
       status: "completed",
@@ -272,7 +269,7 @@ class GithubBot
     if body.include?('CI: success')
       request[:conclusion] = 'success'
       found = false
-      installation_client.get("/repos/nervosnetwork/ckb/commits/#{sha}/check-runs", accept)['check_runs'].each do |check|
+      installation_client.get("/repos/nervosnetwork/ckb/commits/#{sha}/check-runs")['check_runs'].each do |check|
         if check['name'] == request[:name] && (check['status'] != 'completed' || check['conclusion'] != 'success') then
           patch_request = request.dup
           patch_request.delete(:head_sha)
@@ -294,7 +291,7 @@ class GithubBot
     if body.include?('Integration: success')
       request[:conclusion] = 'success'
       found = false
-      installation_client.get("/repos/nervosnetwork/ckb/commits/#{sha}/check-runs", accept)['check_runs'].each do |check|
+      installation_client.get("/repos/nervosnetwork/ckb/commits/#{sha}/check-runs")['check_runs'].each do |check|
         if check['name'] == request[:name] && (check['status'] != 'completed' || check['conclusion'] != 'success') then
           patch_request = request.dup
           patch_request.delete(:head_sha)
