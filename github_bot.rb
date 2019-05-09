@@ -159,11 +159,14 @@ class GithubBot
         summary: payload['check_run']['output']['summary']
       }
     }
+    request.delete(:conclusion) if request[:conclusion].nil?
+    request.delete(:completed_at) if request[:completed_at].nil?
+
     if payload['check_run']['name'].include?('Branch')
       request[:name] = "Nervos Integration"
     end
 
-    check = installation_client.get("/repos/nervosnetwork/ckb/commits/#{sha}/check-runs", accept: accept)['check_runs'].find do |check|
+    check = installation_client.get("/repos/nervosnetwork/ckb/commits/#{payload['check_run']['head_sha']}/check-runs", accept: accept)['check_runs'].find do |check|
       check['name'] == request[:name] && check['app']['name'] == 'Nervos Bot' && check['head_sha'] == request[:head_sha]
     end
     if check
