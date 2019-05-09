@@ -257,9 +257,12 @@ class GithubBot
       status: "completed",
       conclusion: "success",
       head_sha: sha,
+      details_url: payload['comment']['html_url'],
       name: "Travis CI - Pull Request",
+      completed_at: Time.now.utc.iso8601,
       output: {
-        title: "CI passed via devtools/ci/local.sh"
+        title: "CI passed via devtools/ci/local.sh",
+        summary: "#{payload['comment']['user']['login']} ran CI locally and submitted the status via #{payload['comment']['html_url']}",
       }
     }
     body = payload['comment']['body']
@@ -300,7 +303,7 @@ class GithubBot
   end
 
   def can_write(user, repository)
-    permission_level = @client.permission_level(repository, user)
+    permission_level = installation_client.permission_level(repository, user)
     return %w(admin write).include?(permission_level['permission'])
   end
 end
