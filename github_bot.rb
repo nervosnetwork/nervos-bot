@@ -263,10 +263,10 @@ class GithubBot
     body = payload['comment']['body']
     if body.include?('CI: success')
       request[:conclusion] = 'success'
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request.dup)
     elsif body.include?('CI: failure')
       request[:conclusion] = 'failure'
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request.dup)
     end
 
     request[:name] = 'Nervos Integration'
