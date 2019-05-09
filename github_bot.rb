@@ -23,23 +23,9 @@ class GithubBot
     tg_token = opts.fetch('TELEGRAM_CKB_ACCESS_TOKEN', ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN'))
     @tg = Telegram::Bot::Client.new(tg_token, logger: @logger)
 
-    @issues_to_column = {}
-    @pull_requests_to_column = {}
     @pull_requests_to_tg = {}
     ENV.each_pair do |k, v|
       case k
-      when /\AGITHUB_ISSUES_TO_COLUMN_(\d+)\z/
-        col_id = $1.to_i
-        v.split(',').each do |project|
-          @issues_to_column[project] ||= []
-          @issues_to_column[project] << col_id
-        end
-      when /\AGITHUB_PULL_REQUESTS_TO_COLUMN_(\d+)\z/
-        col_id = $1.to_i
-        v.split(',').each do |project|
-          @pull_requests_to_column[project] ||= []
-          @pull_requests_to_column[project] << col_id
-        end
       when /\AGITHUB_PULL_REQUESTS_TO_TG_(_?\d+)\z/
         chat_id = $1.gsub(/_/, '-').to_i
         v.split(',').each do |project|
@@ -88,32 +74,12 @@ class GithubBot
     end
   end
 
-  def on_issues(payload)
-    case payload['action']
-    when 'opened'
-      begin
-        add_issues_to_column(payload)
-      rescue Octokit::UnprocessableEntity => e
-        unless e.response_body.include?('Project already has the associated issue')
-          raise e
-        end
-      end
-    end
-  end
-
   def on_pull_request(payload)
     try_add_base_branch_in_pull_request_title(payload)
     try_hold_pull_request(payload)
     case payload['action']
     when 'opened'
       try_add_hotfix_label(payload)
-      begin
-        add_pull_requests_to_column(payload)
-      rescue Octokit::UnprocessableEntity => e
-        unless e.response_body.include?('Project already has the associated issue')
-          raise e
-        end
-      end
     when 'closed'
       if payload['pull_request']['merged']
         notify_pull_requests_merged(payload)
@@ -174,18 +140,6 @@ class GithubBot
       installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", request)
     else
       installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
-    end
-  end
-
-  def add_issues_to_column(payload)
-    @issues_to_column.fetch(payload['repository']['name'], []).each do |col_id|
-      installation_client.create_project_card(col_id, content_id: payload['issue']['id'], content_type: 'Issue')
-    end
-  end
-
-  def add_pull_requests_to_column(payload)
-    @pull_requests_to_column.fetch(payload['repository']['name'], []).each do |col_id|
-      installation_client.create_project_card(col_id, content_id: payload['pull_request']['id'], content_type: 'PullRequest')
     end
   end
 
