@@ -127,7 +127,7 @@ class GithubBot
       case payload['comment']['body']
       when /^@nervos-bot\s+([^\s]+)\s*(.*)/
         command = $1
-        args = $2
+        args = $2.strip
         case command
         when 'ci-status'
           ci_status(payload, args)
