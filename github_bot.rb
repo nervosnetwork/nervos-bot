@@ -140,6 +140,40 @@ class GithubBot
     end
   end
 
+  def check_run(payload)
+    unless payload['check_run']['name'].include?('Travis CI - ')
+      return
+    end
+
+    accept = 'application/vnd.github.antiope-preview+json'
+    request = {
+      accept: accept,
+      status: payload['check_run']['status'],
+      conclusion: payload['check_run']['conclusion'],
+      head_sha: payload['check_run']['head_sha'],
+      details_url: payload['check_run']['details_url'],
+      name: "Nervos CI",
+      completed_at: payload['check_run']['completed_at'],
+      output: {
+        title: "#{payload['check_run']['output']['title']} via Travis",
+        summary: payload['check_run']['output']['summary']
+      }
+    }
+    if payload['check_run']['name'].include?('Branch')
+      request[:name] = "Nervos Integration"
+    end
+
+    check = installation_client.get("/repos/nervosnetwork/ckb/commits/#{sha}/check-runs", accept: accept)['check_runs'].find do |check|
+      check['name'] == request[:name] && check['app']['name'] == 'Nervos Bot' && check['head_sha'] == request[:head_sha]
+    end
+    if check
+      request.delete(:head_sha)
+      installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", request)
+    else
+      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+    end
+  end
+
   def add_issues_to_column(payload)
     @issues_to_column.fetch(payload['repository']['name'], []).each do |col_id|
       installation_client.create_project_card(col_id, content_id: payload['issue']['id'], content_type: 'Issue')
@@ -258,7 +292,7 @@ class GithubBot
       conclusion: "success",
       head_sha: sha,
       details_url: payload['comment']['html_url'],
-      name: "Travis CI - Pull Request",
+      name: "Nervos CI",
       completed_at: Time.now.utc.iso8601,
       output: {
         title: "CI passed via devtools/ci/local.sh",
@@ -274,7 +308,7 @@ class GithubBot
       installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
     end
 
-    request[:name] = 'Travis CI - Branch'
+    request[:name] = 'Nervos Integration'
     request[:output][:title] = "Integration passed via devtools/ci/local.sh"
 
     if body.include?('Integration: success')
