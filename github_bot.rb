@@ -140,7 +140,7 @@ class GithubBot
     end
   end
 
-  def check_run(payload)
+  def on_check_run(payload)
     unless payload['check_run']['name'].include?('Travis CI - ')
       return
     end
