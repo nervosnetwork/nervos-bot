@@ -268,7 +268,18 @@ class GithubBot
     body = payload['comment']['body']
     if body.include?('CI: success')
       request[:conclusion] = 'success'
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      found = false
+      installation_client.get("/repos/nervosnetwork/ckb/commits/#{sha}/check-runs")['check_runs'].each do |check|
+        if check['name'] == request[:name] && (check['status'] != 'completed' || check['conclusion'] != 'success') then
+          patch_request = request.dup
+          patch_request.delete(:head_sha)
+          installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", patch_request)
+          found = true
+        end
+      end
+      if !found
+        installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      end
     elsif body.include?('CI: failure')
       request[:conclusion] = 'failure'
       installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
@@ -279,7 +290,18 @@ class GithubBot
 
     if body.include?('Integration: success')
       request[:conclusion] = 'success'
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      found = false
+      installation_client.get("/repos/nervosnetwork/ckb/commits/#{sha}/check-runs")['check_runs'].each do |check|
+        if check['name'] == request[:name] && (check['status'] != 'completed' || check['conclusion'] != 'success') then
+          patch_request = request.dup
+          patch_request.delete(:head_sha)
+          installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", patch_request)
+          found = true
+        end
+      end
+      if !found
+        installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      end
     elsif body.include?('Integration: failure')
       request[:conclusion] = 'failure'
       installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
