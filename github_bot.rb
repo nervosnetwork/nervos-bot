@@ -244,6 +244,8 @@ class GithubBot
   end
 
   def ci_status(payload, sha)
+    return if !can_write(payload['comment']['user']['login'], payload['repository']['id'])
+
     installation_client.create_issue_comment_reaction(
       payload['repository']['id'],
       payload['comment']['id'],
@@ -282,16 +284,23 @@ class GithubBot
   end
 
   def give_me_five(payload)
-      installation_client.create_issue_comment_reaction(
-        payload['repository']['id'],
-        payload['comment']['id'],
-        'hooray'
-      )
-      installation_client.create_pull_request_review(
-        payload['repository']['id'],
-        payload['issue']['number'],
-        body: '🚢',
-        event: 'APPROVE'
-      )
+    return if !can_write(payload['comment']['user']['login'], payload['repository']['id'])
+
+    installation_client.create_issue_comment_reaction(
+      payload['repository']['id'],
+      payload['comment']['id'],
+      'hooray'
+    )
+    installation_client.create_pull_request_review(
+      payload['repository']['id'],
+      payload['issue']['number'],
+      body: '🚢',
+      event: 'APPROVE'
+    )
+  end
+
+  def can_write(user, repository)
+    permission_level = @client.permission_level(repository, user)
+    return %w(admin write).include?(permission_level['permission'])
   end
 end
