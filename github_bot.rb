@@ -297,7 +297,7 @@ class GithubBot
     installation_client.create_pull_request_review(
       payload['repository']['id'],
       payload['issue']['number'],
-      body: '🚢',
+      body: "🚢 requested by @#{payload['comment']['user']['login']} in #{payload['comment']['html_url']}",
       event: 'APPROVE'
     )
   end
