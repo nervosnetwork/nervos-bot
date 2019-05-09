@@ -22,6 +22,7 @@ class GithubBot
     @logger = opts.fetch(:logger, Logger.new(STDOUT))
     tg_token = opts.fetch('TELEGRAM_CKB_ACCESS_TOKEN', ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN'))
     @tg = Telegram::Bot::Client.new(tg_token, logger: @logger)
+    @ci_sync_projects = ENV['GITHUB_CI_SYNC'].to_s.split(',')
 
     @pull_requests_to_tg = {}
     ENV.each_pair do |k, v|
@@ -108,6 +109,9 @@ class GithubBot
 
   def on_check_run(payload)
     unless payload['check_run']['name'].include?('Travis CI - ')
+      return
+    end
+    unless @ci_sync_projects.include?(payload['repository']['name'])
       return
     end
 
