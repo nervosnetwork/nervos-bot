@@ -121,6 +121,25 @@ class GithubBot
     end
   end
 
+  def on_issue_comment(payload)
+    case payload['action']
+    when 'created'
+      case payload['comment']['body']
+      when /^@nervos-bot\s+([^\s]+)\s*(.*)/
+        command = $1
+        args = $2
+        case command
+        when 'ci-status'
+          ci_status(payload, args)
+        when 'give'
+          if args.strip.split == %w(me five)
+            give_me_five(payload)
+          end
+        end
+      end
+    end
+  end
+
   def add_issues_to_column(payload)
     @issues_to_column.fetch(payload['repository']['name'], []).each do |col_id|
       installation_client.create_project_card(col_id, content_id: payload['issue']['id'], content_type: 'Issue')
@@ -222,5 +241,57 @@ class GithubBot
         end
       end
     end
+  end
+
+  def ci_status(payload, sha)
+    installation_client.create_issue_comment_reaction(
+      payload['repository']['id'],
+      payload['comment']['id'],
+      '+1'
+    )
+
+    request = {
+      accept: 'application/vnd.github.antiope-preview+json',
+      status: "completed",
+      conclusion: "success",
+      head_sha: sha,
+      name: "Travis CI - Pull Request",
+      output: {
+        title: "CI passed via devtools/ci/local.sh"
+      }
+    }
+    body = payload['comment']['body']
+    if body.include?('CI: success')
+      request[:conclusion] = 'success'
+      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+    elsif body.include?('CI: failure')
+      request[:conclusion] = 'failure'
+      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+    end
+
+    request[:name] = 'Travis CI - Branch'
+    request[:output][:title] = "Integration passed via devtools/ci/local.sh"
+
+    if body.include?('Integration: success')
+      request[:conclusion] = 'success'
+      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+    elsif body.include?('Integration: failure')
+      request[:conclusion] = 'failure'
+      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+    end
+  end
+
+  def give_me_five(payload)
+      installation_client.create_issue_comment_reaction(
+        payload['repository']['id'],
+        payload['comment']['id'],
+        'hooray'
+      )
+      installation_client.create_pull_request_review(
+        payload['repository']['id'],
+        payload['issue']['number'],
+        body: '🚢',
+        event: 'APPROVE'
+      )
   end
 end
