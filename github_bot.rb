@@ -262,7 +262,7 @@ class GithubBot
       completed_at: Time.now.utc.iso8601,
       output: {
         title: "CI passed via devtools/ci/local.sh",
-        summary: "#{payload['comment']['user']['login']} ran CI locally and submitted the status via #{payload['comment']['html_url']}",
+        summary: "@#{payload['comment']['user']['login']} ran CI locally and submitted the status via #{payload['comment']['html_url']}",
       }
     }
     body = payload['comment']['body']
