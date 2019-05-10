@@ -136,15 +136,7 @@ class GithubBot
       request[:name] = "Nervos Integration"
     end
 
-    installation_client.get("/repos/nervosnetwork/ckb/commits/#{payload['check_run']['head_sha']}/check-runs", accept: accept)['check_runs'].each do |check|
-      if check['name'] == request[:name] && check['app']['name'] == 'Nervos Bot' && check['head_sha'] == request[:head_sha] then
-        request.delete(:head_sha)
-        installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", request)
-      end
-    end
-    if request[:head_sha]
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
-    end
+    post_check_run(request)
   end
 
   def try_add_hotfix_label(payload)
@@ -263,10 +255,10 @@ class GithubBot
     body = payload['comment']['body']
     if body.include?('CI: success')
       request[:conclusion] = 'success'
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request.dup)
+      post_check_run(request)
     elsif body.include?('CI: failure')
       request[:conclusion] = 'failure'
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request.dup)
+      post_check_run(request)
     end
 
     request[:name] = 'Nervos Integration'
@@ -274,10 +266,10 @@ class GithubBot
 
     if body.include?('Integration: success')
       request[:conclusion] = 'success'
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      post_check_run(request)
     elsif body.include?('Integration: failure')
       request[:conclusion] = 'failure'
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      post_check_run(request)
     end
   end
 
@@ -300,5 +292,19 @@ class GithubBot
   def can_write(user, repository)
     permission_level = installation_client.permission_level(repository, user)
     return %w(admin write).include?(permission_level['permission'])
+  end
+
+  def post_check_run(request)
+    request = request.dup
+    accept = 'application/vnd.github.antiope-preview+json'
+    installation_client.get("/repos/nervosnetwork/ckb/commits/#{request[:head_sha]}/check-runs", accept: accept)['check_runs'].each do |check|
+      if check['name'] == request[:name] && check['app']['name'] == 'Nervos Bot' && check['head_sha'] == request[:head_sha] then
+        request.delete(:head_sha)
+        installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", request)
+      end
+    end
+    if request[:head_sha]
+      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+    end
   end
 end
