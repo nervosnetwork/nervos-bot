@@ -92,7 +92,7 @@ class GithubBot
   def on_issue_comment(payload)
     case payload['action']
     when 'created'
-      case payload['comment']['body']
+      case payload['comment']['body'].to_s
       when /^@nervos-bot\s+([^\s]+)\s*(.*)/
         command = $1
         args = $2.strip
@@ -253,7 +253,7 @@ class GithubBot
         summary: "@#{payload['comment']['user']['login']} ran CI locally and submitted the status via #{payload['comment']['html_url']}",
       }
     }
-    body = payload['comment']['body']
+    body = payload['comment']['body'].to_s
     if body.include?('CI: success')
       request[:conclusion] = 'success'
       post_check_run(request)
@@ -310,7 +310,7 @@ class GithubBot
   end
 
   def try_add_breaking_change_label_to_pull_request(payload)
-    body = payload['pull_request']['body']
+    body = payload['pull_request']['body'].to_s
     if body.downcase.include?('breaking change')
       installation_client.add_labels_to_an_issue(payload['repository']['id'], payload['pull_request']['number'], ['breaking change'])
     end
