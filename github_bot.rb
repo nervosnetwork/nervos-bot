@@ -78,6 +78,7 @@ class GithubBot
   def on_pull_request(payload)
     try_add_base_branch_in_pull_request_title(payload)
     try_hold_pull_request(payload)
+    try_add_breaking_change_label_to_pull_request(payload)
     case payload['action']
     when 'opened'
       try_add_hotfix_label(payload)
@@ -305,6 +306,13 @@ class GithubBot
     end
     if request[:head_sha]
       installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+    end
+  end
+
+  def try_add_breaking_change_label_to_pull_request(payload)
+    body = payload['pull_request']['body']
+    if body.downcase.include?('breaking change')
+      installation_client.add_labels_to_an_issue(payload['repository']['id'], payload['pull_request']['number'], ['breaking change'])
     end
   end
 end
