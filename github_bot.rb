@@ -165,7 +165,7 @@ class GithubBot
   end
 
   def try_add_base_branch_in_pull_request_title(payload)
-    unless payload['action'] == 'opened' || (payload['changes'] && payload['changes']['title'])
+    unless payload['action'] == 'opened' || (payload['changes'] && (payload['changes']['title'] || payload['changes']['base']))
       return
     end
 
