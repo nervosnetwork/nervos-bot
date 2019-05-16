@@ -97,8 +97,12 @@ class GithubBot
         command = $1
         args = $2.strip
         case command
-        when /ci(\s+|-)status/
+        when 'ci-status'
           ci_status(payload, args)
+        when 'ci'
+          if args.split.first == 'status'
+            ci_status(payload, args.split.last)
+          end
         when 'give'
           if args.strip.split == %w(me five)
             give_me_five(payload)
