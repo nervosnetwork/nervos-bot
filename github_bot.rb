@@ -93,11 +93,11 @@ class GithubBot
     case payload['action']
     when 'created'
       case payload['comment']['body'].to_s
-      when /^@nervos-bot\s+([^\s]+)\s*(.*)/
+      when /^@nervos-bot(?:-user)?\s+([^\s]+)\s*(.*)/
         command = $1
         args = $2.strip
         case command
-        when 'ci-status'
+        when /ci(\s+|-)status/
           ci_status(payload, args)
         when 'give'
           if args.strip.split == %w(me five)
