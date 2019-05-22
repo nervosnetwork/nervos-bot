@@ -25,6 +25,7 @@ class GithubBot
     @ci_sync_projects = ENV['GITHUB_CI_SYNC'].to_s.split(',')
 
     @pull_requests_to_tg = {}
+    @reviewers = {}
     ENV.each_pair do |k, v|
       case k
       when /\AGITHUB_PULL_REQUESTS_TO_TG_(_?\d+)\z/
@@ -33,6 +34,9 @@ class GithubBot
           @pull_requests_to_tg[project] ||= []
           @pull_requests_to_tg[project] << chat_id
         end
+      when /\AGITHUB_REVIEWERS/
+        project, users = v.split(',', 2)
+        @reviewers[project] = users.split(',')
       end
     end
 
@@ -81,6 +85,7 @@ class GithubBot
     try_add_breaking_change_label_to_pull_request(payload)
     case payload['action']
     when 'opened'
+      assign_reviewer(payload)
       try_add_hotfix_label(payload)
     when 'closed'
       if payload['pull_request']['merged']
@@ -318,5 +323,20 @@ class GithubBot
     if body.downcase.include?('breaking change')
       installation_client.add_labels_to_an_issue(payload['repository']['id'], payload['pull_request']['number'], ['breaking change'])
     end
+  end
+
+  def assign_reviewer(payload)
+    users = @reviewers[payload['repository']['name']]
+    return unless users
+    users.delete(payload['pull_request']['user']['login'])
+    return if users.empty?
+
+    repo = payload['repository']['id']
+    number = payload['pull_request']['number']
+
+    reviewer = users.sample
+    installation_client.add_assignees(repo, number, [reviewer])
+    installation_client.request_pull_request_review(repo, number, [reviewer])
+    installation_client.add_comment(repo, number, "@{reviewer} is assigned as the leading reviewer")
   end
 end
