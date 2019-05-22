@@ -336,6 +336,6 @@ class GithubBot
 
     reviewer = users.sample
     installation_client.add_assignees(repo, number, [reviewer])
-    installation_client.add_comment(repo, number, "@#{reviewer} is assigned as the reviewer")
+    installation_client.add_comment(repo, number, "@#{reviewer} is assigned as the chief reviewer")
   end
 end
