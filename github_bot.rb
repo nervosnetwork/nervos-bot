@@ -336,7 +336,7 @@ class GithubBot
 
     reviewer = users.sample
     installation_client.add_assignees(repo, number, [reviewer])
-    installation_client.request_pull_request_review(repo, number, [reviewer])
+    installation_client.request_pull_request_review(repo, number, reviewers: [reviewer])
     installation_client.add_comment(repo, number, "@{reviewer} is assigned as the leading reviewer")
   end
 end
