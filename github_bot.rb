@@ -133,8 +133,14 @@ class GithubBot
     return unless payload['action'] == 'rerequested'
     head_sha = payload['check_suite']['head_commit']['id']
 
-    request = dup_check_run_from_travis(payload['check_run'])
-    post_check_run(payload['repository']['full_name'], request)
+    repo = post_check_run(payload['repository']['full_name']
+    accept = 'application/vnd.github.antiope-preview+json'
+    installation_client.get("/repos/#{repo}/commits/#{request[:head_sha]}/check-runs", accept: accept)['check_runs'].each do |check|
+      if check['name'].include?('Travis CI - ')
+        request = dup_check_run_from_travis(check)
+        post_check_run(payload['repository']['full_name'], request)
+      end
+    end
   end
 
   def try_add_hotfix_label(payload)
