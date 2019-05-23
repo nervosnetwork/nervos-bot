@@ -310,7 +310,7 @@ class GithubBot
     installation_client.get("/repos/nervosnetwork/ckb/commits/#{request[:head_sha]}/check-runs", accept: accept)['check_runs'].each do |check|
       if check['name'] == request[:name] && check['app']['name'] == 'Nervos Bot' && check['head_sha'] == request[:head_sha] then
         request.delete(:head_sha)
-        installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", request)
+        installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", request.dup)
       end
     end
     if request[:head_sha]
