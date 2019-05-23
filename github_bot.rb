@@ -125,28 +125,16 @@ class GithubBot
       return
     end
 
-    accept = 'application/vnd.github.antiope-preview+json'
-    request = {
-      accept: accept,
-      status: payload['check_run']['status'],
-      conclusion: payload['check_run']['conclusion'],
-      head_sha: payload['check_run']['head_sha'],
-      details_url: payload['check_run']['details_url'],
-      name: "Nervos CI",
-      completed_at: payload['check_run']['completed_at'],
-      output: {
-        title: "#{payload['check_run']['output']['title']} via Travis",
-        summary: payload['check_run']['output']['summary']
-      }
-    }
-    request.delete(:conclusion) if request[:conclusion].nil?
-    request.delete(:completed_at) if request[:completed_at].nil?
+    request = dup_check_run_from_travis(payload['check_run'])
+    post_check_run(payload['repository']['full_name'], request)
+  end
 
-    if payload['check_run']['name'].include?('Branch')
-      request[:name] = "Nervos Integration"
-    end
+  def on_check_suite(payload)
+    return unless payload['action'] == 'rerequested'
+    head_sha = payload['check_suite']['head_commit']['id']
 
-    post_check_run(request)
+    request = dup_check_run_from_travis(payload['check_run'])
+    post_check_run(payload['repository']['full_name'], request)
   end
 
   def try_add_hotfix_label(payload)
@@ -243,6 +231,8 @@ class GithubBot
   def ci_status(payload, sha)
     return if !can_write(payload['comment']['user']['login'], payload['repository']['id'])
 
+    repo = payload['repository']['full_name']
+
     installation_client.create_issue_comment_reaction(
       payload['repository']['id'],
       payload['comment']['id'],
@@ -265,10 +255,10 @@ class GithubBot
     body = payload['comment']['body'].to_s
     if body.include?('CI: success')
       request[:conclusion] = 'success'
-      post_check_run(request)
+      post_check_run(repo, request)
     elsif body.include?('CI: failure')
       request[:conclusion] = 'failure'
-      post_check_run(request)
+      post_check_run(repo, request)
     end
 
     request[:name] = 'Nervos Integration'
@@ -276,10 +266,10 @@ class GithubBot
 
     if body.include?('Integration: success')
       request[:conclusion] = 'success'
-      post_check_run(request)
+      post_check_run(repo, request)
     elsif body.include?('Integration: failure')
       request[:conclusion] = 'failure'
-      post_check_run(request)
+      post_check_run(repo, request)
     end
   end
 
@@ -304,17 +294,18 @@ class GithubBot
     return %w(admin write).include?(permission_level['permission'])
   end
 
-  def post_check_run(request)
+  def post_check_run(repo, request)
     request = request.dup
+    head_sha = request[:head_sha]
     accept = 'application/vnd.github.antiope-preview+json'
-    installation_client.get("/repos/nervosnetwork/ckb/commits/#{request[:head_sha]}/check-runs", accept: accept)['check_runs'].each do |check|
-      if check['name'] == request[:name] && check['app']['name'] == 'Nervos Bot' && check['head_sha'] == request[:head_sha] then
+    installation_client.get("/repos/#{repo}/commits/#{request[:head_sha]}/check-runs", accept: accept)['check_runs'].each do |check|
+      if check['name'] == request[:name] && check['app']['name'] == 'Nervos Bot' && check['head_sha'] == head_sha then
         request.delete(:head_sha)
-        installation_client.patch("/repos/nervosnetwork/ckb/check-runs/#{check['id']}", request.dup)
+        installation_client.patch("/repos/#{repo}/check-runs/#{check['id']}", request.dup)
       end
     end
     if request[:head_sha]
-      installation_client.post('/repos/nervosnetwork/ckb/check-runs', request)
+      installation_client.post("/repos/#{repo}/check-runs", request)
     end
   end
 
@@ -337,5 +328,29 @@ class GithubBot
     reviewer = users.sample
     installation_client.add_assignees(repo, number, [reviewer])
     installation_client.add_comment(repo, number, "@#{reviewer} is assigned as the chief reviewer")
+  end
+
+  def dup_check_run_from_travis(check_run)
+    accept = 'application/vnd.github.antiope-preview+json'
+    request = {
+      accept: accept,
+      status: check_run['status'],
+      conclusion: check_run['conclusion'],
+      head_sha: check_run['head_sha'],
+      details_url: check_run['details_url'],
+      name: "Nervos CI",
+      completed_at: check_run['completed_at'],
+      output: {
+        title: "#{check_run['output']['title']} via Travis",
+        summary: check_run['output']['summary']
+      }
+    }
+    request.delete(:conclusion) if request[:conclusion].nil?
+    request.delete(:completed_at) if request[:completed_at].nil?
+    if check_run['name'].include?('Branch')
+      request[:name] = "Nervos Integration"
+    end
+
+    request
   end
 end
