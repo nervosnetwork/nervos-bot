@@ -4,6 +4,7 @@ require 'jwt'
 require 'time'
 require 'openssl'
 require 'base64'
+require 'uri'
 require 'telegram/bot'
 
 class GithubBot
@@ -23,6 +24,7 @@ class GithubBot
     tg_token = opts.fetch('TELEGRAM_CKB_ACCESS_TOKEN', ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN'))
     @tg = Telegram::Bot::Client.new(tg_token, logger: @logger)
     @ci_sync_projects = ENV['GITHUB_CI_SYNC'].to_s.split(',')
+    @ci_fork_projects = ENV['GITHUB_CI_FORK'].to_s.split(',')
 
     @pull_requests_to_tg = {}
     @reviewers = {}
@@ -87,6 +89,7 @@ class GithubBot
     when 'opened'
       assign_reviewer(payload)
       try_add_hotfix_label(payload)
+      post_fork_ci_status(payload)
     when 'closed'
       if payload['pull_request']['merged']
         notify_pull_requests_merged(payload)
@@ -358,5 +361,15 @@ class GithubBot
     end
 
     request
+  end
+
+  def post_fork_ci_status(payload)
+    return if payload['pull_request']['head']['repo']['id'] == payload['pull_request']['base']['repo']['id']
+
+    repo = payload['repository']['id']
+    number = payload['pull_request']['number']
+    fork_repo = payload['pull_request']['head']['repo']['full_name']
+    branch = URI.encode_www_form_component(payload['pull_request']['head']['ref'])
+    installation_client.add_comment(repo, number, "CI status of the fork branch is [![Build Status](https://travis-ci.com/#{fork_repo}.svg?branch=#{branch})](https://travis-ci.com/#{fork_repo})")
   end
 end
