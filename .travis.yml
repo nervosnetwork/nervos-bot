@@ -1,0 +1,8 @@
+sudo: false
+dist: xenial
+language: ruby
+cache: bundler
+install:
+  - bundle install
+script:
+  - make test

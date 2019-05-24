@@ -5,9 +5,11 @@ require 'json'
 require 'logger'
 
 require_relative 'github_bot'
+require_relative 'github_bot_brain'
 
 class GithubBotApp < Sinatra::Application
   WEBHOOK_SECRET = ENV['GITHUB_WEBHOOK_SECRET']
+  BRAIN = GithubBotBrain.new
 
   configure :development do
     set :logging, Logger::DEBUG
@@ -55,7 +57,7 @@ class GithubBotApp < Sinatra::Application
     end
 
     def authenticate_app
-      @github_bot = GithubBot.new(logger: logger)
+      @github_bot = GithubBot.new(BRAIN, logger: logger)
     end
 
     # Instantiate an Octokit client, authenticated as an installation of a
