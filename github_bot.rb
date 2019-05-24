@@ -364,6 +364,7 @@ class GithubBot
   end
 
   def post_fork_ci_status(payload)
+    return unless @ci_fork_projects.include?(payload['repository']['name'])
     return if payload['pull_request']['head']['repo']['id'] == payload['pull_request']['base']['repo']['id']
 
     repo = payload['repository']['id']
