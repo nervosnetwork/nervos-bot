@@ -54,12 +54,12 @@ class GithubBot
     if org_or_installation_id.is_a?(Integer)
       installation_id = org_or_installation_id
     else
-      installation_id = app_client.find_organization_installation(org_or_installation_id, PREVIEW_HEADER)[:id]
+      installation_id = app_client.find_organization_installation(org_or_installation_id, PREVIEW_HEADER.dup)[:id]
     end
 
     installation_token = app_client.create_app_installation_access_token(
       installation_id,
-      PREVIEW_HEADER
+      PREVIEW_HEADER.dup
     )[:token]
     @installation_client = Octokit::Client.new(bearer_token: installation_token)
     @installation_client.auto_paginate = true
