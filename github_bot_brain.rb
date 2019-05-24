@@ -22,7 +22,7 @@ class GithubBotBrain
         end
       when /\AGITHUB_REVIEWERS/
         project, users = v.split(',', 2)
-        @reviewers[project] = users.split(',')
+        @reviewers[project] = users.split(',').shuffle
       end
     end
   end
