@@ -74,14 +74,17 @@ class GithubBot
     try_add_base_branch_in_pull_request_title(payload)
     try_hold_pull_request(payload)
     try_add_breaking_change_label_to_pull_request(payload)
-    ci_fork_sync(payload)
 
     case payload['action']
     when 'opened'
       assign_reviewer(payload)
       try_add_hotfix_label(payload)
+      create_pr_mirror(payload)
     when 'closed'
       notify_pull_requests_merged(payload) if payload['pull_request']['merged']
+      delete_pr_mirror(payload)
+    else
+      create_pr_mirror(payload)
     end
   end
 
@@ -99,6 +102,8 @@ class GithubBot
           ci_status(payload, args.split.last) if args.split.first == 'status'
         when 'give'
           give_me_five(payload) if args.strip.split == %w[me five]
+        when 'try'
+          try_integration(payload) if args.strip.split == %w[integration]
         end
       end
     end
@@ -350,22 +355,29 @@ class GithubBot
     request
   end
 
-  def ci_fork_sync(payload)
+  def delete_pr_mirror(payload)
     return unless brain.ci_fork_projects.include?(payload['repository']['name'])
     return if payload['pull_request']['head']['repo']['id'] == payload['pull_request']['base']['repo']['id']
 
     repo = payload['repository']['id']
     number = payload['pull_request']['number']
     ref = "heads/pr-mirror/#{number}"
-    fork_repo = payload['pull_request']['head']['repo']['full_name']
-    sha = payload['pull_request']['head']['sha']
-
-    if payload['action'] == 'closed'
-      # delete the ref
+    begin
       installation_client.delete_ref(repo, ref)
-      return
+    rescue Octokit::UnprocessableEntity
+      # ignore
     end
+  end
 
+  def create_pr_mirror(payload)
+    return unless brain.ci_fork_projects.include?(payload['repository']['name'])
+    return if payload['pull_request']['head']['repo']['id'] == payload['pull_request']['base']['repo']['id']
+    return unless can_write(payload['pull_request']['user']['login'], payload['repository']['id'])
+
+    repo = payload['repository']['id']
+    number = payload['pull_request']['number']
+    ref = "heads/pr-mirror/#{number}"
+    sha = payload['pull_request']['head']['sha']
 
     begin
       installation_client.create_ref(repo, ref, sha)
@@ -376,5 +388,21 @@ class GithubBot
         raise
       end
     end
+  end
+
+  def try_integration(payload)
+    return unless brain.ci_fork_projects.include?(payload['repository']['name'])
+    return unless can_write(payload['comment']['user']['login'], payload['repository']['id'])
+
+    installation_client.create_issue_comment_reaction(
+      payload['repository']['id'],
+      payload['comment']['id'],
+      'hooray'
+    )
+
+    create_pr_mirror(
+      'pull_request' => installation_client.pull_request(payload['repository']['id'], payload['issue']['number']),
+      'repository' => payload['repository']
+    )
   end
 end

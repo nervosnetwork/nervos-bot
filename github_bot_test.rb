@@ -59,28 +59,10 @@ class GithubBotTest < Minitest::Test
     assert_equal(@brain.reviewers['ckb'], %w[foo bot bar])
   end
 
-  def test_ci_fork_sync_skip
-    @brain.ci_fork_projects << 'ckb'
-    @bot.ci_fork_sync(
-      'repository' => repo('ckb1')
-    )
-    @bot.ci_fork_sync(
-      'repository' => repo('ckb'),
-      'pull_request' => {
-        'head' => {
-          'repo' => repo('ckb')
-        },
-        'base' => {
-          'repo' => repo('ckb')
-        }
-      }
-    )
-  end
-
-  def test_ci_fork_sync_delete_ref
+  def test_delete_pr_mirror
     @brain.ci_fork_projects << 'ckb'
     @bot.installation_client.expect :delete_ref, nil, [1, 'heads/pr-mirror/123']
-    @bot.ci_fork_sync(
+    @bot.delete_pr_mirror(
       'action' => 'closed',
       'repository' => repo('ckb'),
       'pull_request' => {
@@ -95,15 +77,17 @@ class GithubBotTest < Minitest::Test
     )
   end
 
-  def test_ci_fork_sync_create_ref
+  def test_create_pr_mirror
     sha = 'ba2a58e951378979309ed0d0a7ec52a7f819d683'
 
     @brain.ci_fork_projects << 'ckb'
+    @bot.installation_client.expect :permission_level, { 'permission' => 'write' }, [1, 'foo']
     @bot.installation_client.expect :create_ref, nil, [1, 'heads/pr-mirror/123', sha]
-    @bot.ci_fork_sync(
+    @bot.create_pr_mirror(
       'action' => 'opened',
       'repository' => repo('ckb'),
       'pull_request' => {
+        'user' => user('foo'),
         'number' => 123,
         'head' => {
           'repo' => repo('ckb'),
@@ -116,18 +100,20 @@ class GithubBotTest < Minitest::Test
     )
   end
 
-  def test_ci_fork_sync_update_ref
+  def test_update_pr_mirror
     sha = 'ba2a58e951378979309ed0d0a7ec52a7f819d683'
 
     @brain.ci_fork_projects << 'ckb'
+    @bot.installation_client.expect :permission_level, { 'permission' => 'write' }, [1, 'foo']
     @bot.installation_client.expect :create_ref, nil do
       raise Octokit::UnprocessableEntity.new(body: "Reference already exists")
     end
     @bot.installation_client.expect :update_ref, nil, [1, 'heads/pr-mirror/123', sha, true]
-    @bot.ci_fork_sync(
+    @bot.create_pr_mirror(
       'action' => 'opened',
       'repository' => repo('ckb'),
       'pull_request' => {
+        'user' => user('foo'),
         'number' => 123,
         'head' => {
           'repo' => repo('ckb'),
