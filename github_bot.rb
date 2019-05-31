@@ -74,11 +74,12 @@ class GithubBot
     try_add_base_branch_in_pull_request_title(payload)
     try_hold_pull_request(payload)
     try_add_breaking_change_label_to_pull_request(payload)
+    ci_fork_sync(payload)
+
     case payload['action']
     when 'opened'
       assign_reviewer(payload)
       try_add_hotfix_label(payload)
-      post_fork_ci_status(payload)
     when 'closed'
       notify_pull_requests_merged(payload) if payload['pull_request']['merged']
     end
@@ -349,14 +350,31 @@ class GithubBot
     request
   end
 
-  def post_fork_ci_status(payload)
+  def ci_fork_sync(payload)
     return unless brain.ci_fork_projects.include?(payload['repository']['name'])
     return if payload['pull_request']['head']['repo']['id'] == payload['pull_request']['base']['repo']['id']
 
     repo = payload['repository']['id']
     number = payload['pull_request']['number']
+    ref = "heads/pr-mirror/#{number}"
     fork_repo = payload['pull_request']['head']['repo']['full_name']
-    branch = URI.encode_www_form_component(payload['pull_request']['head']['ref'])
-    installation_client.add_comment(repo, number, "CI status of the fork branch is [![Build Status](https://travis-ci.com/#{fork_repo}.svg?branch=#{branch})](https://travis-ci.com/#{fork_repo})")
+    sha = payload['pull_request']['head']['sha']
+
+    if payload['action'] == 'closed'
+      # delete the ref
+      installation_client.delete_ref(repo, ref)
+      return
+    end
+
+
+    begin
+      installation_client.create_ref(repo, ref, sha)
+    rescue Octokit::UnprocessableEntity => e
+      if e.message.include?('Reference already exists')
+        installation_client.update_ref(repo, ref, sha, true)
+      else
+        raise
+      end
+    end
   end
 end
