@@ -3,7 +3,7 @@
 class GithubBotBrain
   attr_accessor :ci_sync_projects
   attr_accessor :ci_fork_projects
-  attr_accessor :pull_request_to_tg
+  attr_accessor :pull_requests_to_tg
   attr_accessor :reviewers
 
   def initialize
