@@ -106,8 +106,9 @@ class GithubBotTest < Minitest::Test
     @brain.ci_fork_projects << 'ckb'
     @bot.installation_client.expect :permission_level, { 'permission' => 'write' }, [1, 'foo']
     @bot.installation_client.expect :create_ref, nil do
-      raise Octokit::UnprocessableEntity.new(body: "Reference already exists")
+      raise Octokit::UnprocessableEntity.new(body: 'Reference already exists')
     end
+    @bot.installation_client.expect :ref, { 'object' => { 'sha' => '' } }, [1, 'heads/pr-mirror/123']
     @bot.installation_client.expect :update_ref, nil, [1, 'heads/pr-mirror/123', sha, true]
     @bot.create_pr_mirror(
       'action' => 'opened',

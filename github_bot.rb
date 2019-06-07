@@ -383,7 +383,10 @@ class GithubBot
       installation_client.create_ref(repo, ref, sha)
     rescue Octokit::UnprocessableEntity => e
       if e.message.include?('Reference already exists')
-        installation_client.update_ref(repo, ref, sha, true)
+        existing_ref = installation_client.ref(repo, ref)
+        if existing_ref['object']['sha'] != sha
+          installation_client.update_ref(repo, ref, sha, true)
+        end
       else
         raise
       end
