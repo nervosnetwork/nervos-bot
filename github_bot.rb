@@ -79,12 +79,9 @@ class GithubBot
     when 'opened'
       assign_reviewer(payload)
       try_add_hotfix_label(payload)
-      create_pr_mirror(payload)
     when 'closed'
       notify_pull_requests_merged(payload) if payload['pull_request']['merged']
       delete_pr_mirror(payload)
-    else
-      create_pr_mirror(payload)
     end
   end
 
@@ -357,7 +354,6 @@ class GithubBot
 
   def delete_pr_mirror(payload)
     return unless brain.ci_fork_projects.include?(payload['repository']['name'])
-    return if payload['pull_request']['head']['repo']['id'] == payload['pull_request']['base']['repo']['id']
 
     repo = payload['repository']['id']
     number = payload['pull_request']['number']
@@ -371,8 +367,6 @@ class GithubBot
 
   def create_pr_mirror(payload)
     return unless brain.ci_fork_projects.include?(payload['repository']['name'])
-    return if payload['pull_request']['head']['repo']['id'] == payload['pull_request']['base']['repo']['id']
-    return unless can_write(payload['pull_request']['user']['login'], payload['repository']['id'])
 
     repo = payload['repository']['id']
     number = payload['pull_request']['number']
