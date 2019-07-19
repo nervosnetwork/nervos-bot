@@ -268,6 +268,7 @@ class GithubBot
   end
 
   def post_dummy_ci_status(repository, sha)
+    return unless brain.dummy_ci_projects.include?(repository['name'])
     repo = repository['full_name']
 
     request = {
