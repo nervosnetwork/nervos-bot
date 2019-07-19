@@ -1,14 +1,12 @@
 # frozen_string_literal: true
 
 class GithubBotBrain
-  attr_accessor :ci_sync_projects
-  attr_accessor :ci_fork_projects
+  attr_accessor :dummy_ci_projects
   attr_accessor :pull_requests_to_tg
   attr_accessor :reviewers
 
   def initialize
-    @ci_sync_projects = ENV['GITHUB_CI_SYNC'].to_s.split(',')
-    @ci_fork_projects = ENV['GITHUB_CI_FORK'].to_s.split(',')
+    @dummy_ci_projects = ENV['GITHUB_DUMMY_CI_PROJECTS'].to_s.split(',')
 
     @pull_requests_to_tg = {}
     @reviewers = {}

@@ -79,8 +79,17 @@ class GithubBot
     when 'opened'
       assign_reviewer(payload)
       try_add_hotfix_label(payload)
+      post_dummy_ci_status(payload['repository'], payload['pull_request']['sha'])
+    when 'synchronize'
+      post_dummy_ci_status(payload['repository'], payload['pull_request']['sha'])
     when 'closed'
       notify_pull_requests_merged(payload) if payload['pull_request']['merged']
+    end
+  end
+
+  def on_push(payload)
+    unless payload['after'].chars.all? {|c| c == '0'}
+      post_dummy_ci_status(payload['repository'], payload['after'])
     end
   end
 
@@ -256,5 +265,24 @@ class GithubBot
 
     installation_client.add_assignees(repo, number, [reviewer])
     installation_client.add_comment(repo, number, "@#{reviewer} is assigned as the chief reviewer")
+  end
+
+  def post_dummy_ci_status(repository, sha)
+    repo = repository['full_name']
+
+    request = {
+      accept: 'application/vnd.github.antiope-preview+json',
+      status: 'completed',
+      conclusion: 'success',
+      head_sha: sha,
+      name: 'Dummy CI',
+      completed_at: Time.now.utc.iso8601,
+      output: {
+        title: 'CI that does nothing',
+        summary: 'This status check is required to enable "Require branches to be up to date before merging"'
+      }
+    }
+
+    post_check_run(repo, request)
   end
 end
