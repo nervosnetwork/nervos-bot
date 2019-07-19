@@ -79,9 +79,9 @@ class GithubBot
     when 'opened'
       assign_reviewer(payload)
       try_add_hotfix_label(payload)
-      post_dummy_ci_status(payload['repository'], payload['pull_request']['sha'])
+      post_dummy_ci_status(payload['repository'], payload['pull_request']['head']['sha'])
     when 'synchronize'
-      post_dummy_ci_status(payload['repository'], payload['pull_request']['sha'])
+      post_dummy_ci_status(payload['repository'], payload['pull_request']['head']['sha'])
     when 'closed'
       notify_pull_requests_merged(payload) if payload['pull_request']['merged']
     end
