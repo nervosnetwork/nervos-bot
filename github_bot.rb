@@ -103,6 +103,10 @@ class GithubBot
         case command
         when 'give'
           give_me_five(payload) if args.strip.split == %w[me five]
+        when 'dummy-ci'
+          post_dummy_ci_status(payload['repository'], args)
+        when 'dummy'
+          post_dummy_ci_status(payload['repository'], args.split.last) if args.split.first == 'ci'
         end
       when /^bors:?\s+r[\+=]/
         repository = payload['repository']
