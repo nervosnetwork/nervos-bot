@@ -81,7 +81,6 @@ class GithubBot
       try_add_hotfix_label(payload)
     when 'closed'
       notify_pull_requests_merged(payload) if payload['pull_request']['merged']
-      delete_pr_mirror(payload)
     end
   end
 
@@ -95,8 +94,6 @@ class GithubBot
         case command
         when 'give'
           give_me_five(payload) if args.strip.split == %w[me five]
-        when 'try'
-          try_integration(payload) if args.strip.split == %w[integration]
         end
       when /^bors:?\s+r[\+=]/
         repository = payload['repository']
@@ -259,56 +256,5 @@ class GithubBot
 
     installation_client.add_assignees(repo, number, [reviewer])
     installation_client.add_comment(repo, number, "@#{reviewer} is assigned as the chief reviewer")
-  end
-
-  def delete_pr_mirror(payload)
-    return unless brain.ci_fork_projects.include?(payload['repository']['name'])
-
-    repo = payload['repository']['id']
-    number = payload['pull_request']['number']
-    ref = "heads/pr-mirror/#{number}"
-    begin
-      installation_client.delete_ref(repo, ref)
-    rescue Octokit::UnprocessableEntity
-      # ignore
-    end
-  end
-
-  def create_pr_mirror(payload)
-    return unless brain.ci_fork_projects.include?(payload['repository']['name'])
-
-    repo = payload['repository']['id']
-    number = payload['pull_request']['number']
-    ref = "heads/pr-mirror/#{number}"
-    sha = payload['pull_request']['head']['sha']
-
-    begin
-      installation_client.create_ref(repo, ref, sha)
-    rescue Octokit::UnprocessableEntity => e
-      if e.message.include?('Reference already exists')
-        existing_ref = installation_client.ref(repo, ref)
-        if existing_ref['object']['sha'] != sha
-          installation_client.update_ref(repo, ref, sha, true)
-        end
-      else
-        raise
-      end
-    end
-  end
-
-  def try_integration(payload)
-    return unless brain.ci_fork_projects.include?(payload['repository']['name'])
-    return unless can_write(payload['comment']['user']['login'], payload['repository']['id'])
-
-    installation_client.create_issue_comment_reaction(
-      payload['repository']['id'],
-      payload['comment']['id'],
-      'hooray'
-    )
-
-    create_pr_mirror(
-      'pull_request' => installation_client.pull_request(payload['repository']['id'], payload['issue']['number']),
-      'repository' => payload['repository']
-    )
   end
 end
