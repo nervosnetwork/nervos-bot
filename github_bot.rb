@@ -93,38 +93,16 @@ class GithubBot
         command = Regexp.last_match(1)
         args = Regexp.last_match(2).strip
         case command
-        when 'ci-status'
-          ci_status(payload, args)
-        when 'ci'
-          ci_status(payload, args.split.last) if args.split.first == 'status'
         when 'give'
           give_me_five(payload) if args.strip.split == %w[me five]
         when 'try'
           try_integration(payload) if args.strip.split == %w[integration]
         end
-      end
-    end
-  end
-
-  def on_check_run(payload)
-    return unless payload['check_run']['name'].include?('Travis CI - ')
-    return unless brain.ci_sync_projects.include?(payload['repository']['name'])
-
-    request = dup_check_run_from_travis(payload['check_run'])
-    post_check_run(payload['repository']['full_name'], request)
-  end
-
-  def on_check_suite(payload)
-    return unless payload['action'] == 'rerequested'
-
-    head_sha = payload['check_suite']['head_commit']['id']
-    repo = payload['repository']['full_name']
-    accept = 'application/vnd.github.antiope-preview+json'
-
-    installation_client.get("/repos/#{repo}/commits/#{head_sha}/check-runs", accept: accept)['check_runs'].each do |check|
-      if check['name'].include?('Travis CI - ')
-        request = dup_check_run_from_travis(check)
-        post_check_run(payload['repository']['full_name'], request)
+      when /^bors:?\s+r[\+=]/
+        repository = payload['repository']
+        repository_id = repository['id']
+        issue = payload['issue']
+        installation_client.add_labels_to_an_issue(repository_id, issue['number'], ['s:ready-to-merge'])
       end
     end
   end
@@ -216,51 +194,6 @@ class GithubBot
     end
   end
 
-  def ci_status(payload, sha)
-    return unless can_write(payload['comment']['user']['login'], payload['repository']['id'])
-
-    repo = payload['repository']['full_name']
-
-    installation_client.create_issue_comment_reaction(
-      payload['repository']['id'],
-      payload['comment']['id'],
-      '+1'
-    )
-
-    request = {
-      accept: 'application/vnd.github.antiope-preview+json',
-      status: 'completed',
-      conclusion: 'success',
-      head_sha: sha,
-      details_url: payload['comment']['html_url'],
-      name: 'Nervos CI',
-      completed_at: Time.now.utc.iso8601,
-      output: {
-        title: 'CI passed via devtools/ci/local.sh',
-        summary: "@#{payload['comment']['user']['login']} ran CI locally and submitted the status via #{payload['comment']['html_url']}"
-      }
-    }
-    body = payload['comment']['body'].to_s
-    if body.include?('CI: success')
-      request[:conclusion] = 'success'
-      post_check_run(repo, request)
-    elsif body.include?('CI: failure')
-      request[:conclusion] = 'failure'
-      post_check_run(repo, request)
-    end
-
-    request[:name] = 'Nervos Integration'
-    request[:output][:title] = 'Integration passed via devtools/ci/local.sh'
-
-    if body.include?('Integration: success')
-      request[:conclusion] = 'success'
-      post_check_run(repo, request)
-    elsif body.include?('Integration: failure')
-      request[:conclusion] = 'failure'
-      post_check_run(repo, request)
-    end
-  end
-
   def give_me_five(payload)
     return unless can_write(payload['comment']['user']['login'], payload['repository']['id'])
 
@@ -326,30 +259,6 @@ class GithubBot
 
     installation_client.add_assignees(repo, number, [reviewer])
     installation_client.add_comment(repo, number, "@#{reviewer} is assigned as the chief reviewer")
-  end
-
-  def dup_check_run_from_travis(check_run)
-    accept = 'application/vnd.github.antiope-preview+json'
-    request = {
-      accept: accept,
-      status: check_run['status'],
-      conclusion: check_run['conclusion'],
-      head_sha: check_run['head_sha'],
-      details_url: check_run['details_url'],
-      name: 'Nervos CI',
-      completed_at: check_run['completed_at'],
-      output: {
-        title: "#{check_run['output']['title']} via Travis",
-        summary: check_run['output']['summary']
-      }
-    }
-    request.delete(:conclusion) if request[:conclusion].nil?
-    request.delete(:completed_at) if request[:completed_at].nil?
-    if check_run['name'].include?('Branch')
-      request[:name] = 'Nervos Integration'
-    end
-
-    request
   end
 
   def delete_pr_mirror(payload)
