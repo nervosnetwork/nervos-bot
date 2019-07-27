@@ -11,12 +11,13 @@ def on_message(bot, message)
     bot.api.send_message(chat_id: message.chat.id, text: "Hello, #{message.from.first_name}")
   when '/stop'
     bot.api.send_message(chat_id: message.chat.id, text: "Bye, #{message.from.first_name}")
+  when '/chatid'
+    bot.api.send_message(chat_id: message.chat.id, text: "The chat id is #{message.chat.id}")
   end
 end
 
 Telegram::Bot::Client.run(token, logger: Logger.new(STDOUT)) do |bot|
   bot.listen do |message|
-    bot.logger.info("chat_id=#{message.chat.id} text=#{message.text}")
     on_message(bot, message)
   end
 end
