@@ -16,6 +16,7 @@ end
 
 Telegram::Bot::Client.run(token, logger: Logger.new(STDOUT)) do |bot|
   bot.listen do |message|
+    bot.logger.info("chat_id=#{message.chat.id} text=#{message.text}")
     on_message(bot, message)
   end
 end
