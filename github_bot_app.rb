@@ -6,6 +6,7 @@ require 'logger'
 
 require_relative 'github_bot'
 require_relative 'github_bot_brain'
+require_relative 'alert_manager'
 
 class GithubBotApp < Sinatra::Application
   WEBHOOK_SECRET = ENV['GITHUB_WEBHOOK_SECRET']
@@ -38,6 +39,13 @@ class GithubBotApp < Sinatra::Application
     @github_bot.on_event(request.env['HTTP_X_GITHUB_EVENT'], @payload)
 
     200
+  end
+
+  post '/alert-manager' do
+    get_payload_request(request)
+
+    @alert_manager = AlertManager.new
+    @alert_manager.on_event(@payload)
   end
 
 
