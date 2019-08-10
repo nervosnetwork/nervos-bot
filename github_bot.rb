@@ -226,7 +226,7 @@ class GithubBot
       installation_client.create_pull_request_review(
         payload['repository']['id'],
         payload['pull_request']['number'],
-        body: "Please review whether the issue has to backport.",
+        body: "Please review whether this PR has to backport.",
         event: 'REQUEST_CHANGES'
       )
     end
