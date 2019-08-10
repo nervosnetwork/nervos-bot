@@ -180,7 +180,7 @@ class GithubBot
     default_branch = payload['repository']['default_branch']
     base = payload['pull_request']['base']['ref']
     should_backport = (to_title.include?('fix:') || to_title.include?('bug:')) && default_branch == base
-    backported = labels.any? {|l| l.start_with?('backport')}
+    backported = labels.any? {|l| l['name'].start_with?('backport')}
 
     # HOLD
     if (should_backport && !backported) || (!from_hold && to_hold)
