@@ -163,7 +163,7 @@ class GithubBot
   end
 
   def try_hold_pull_request(payload)
-    next if payload['sender']['login'] == 'nervos-bot[bot]'
+    return if payload['sender']['login'] == 'nervos-bot[bot]'
     unless payload['action'] == 'opened' || (payload['changes'] && payload['changes']['title'])
       return
     end
