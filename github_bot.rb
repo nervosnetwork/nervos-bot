@@ -211,7 +211,7 @@ class GithubBot
     should_backport = default_branch == base && !from_is_fix && to_is_fix
 
     if should_backport
-      if from_hold && !to_hold
+      if !to_hold
         # add [HOLD]
         title = payload['pull_request']['title']
         new_title = ['[HOLD]', title].join(' ')
