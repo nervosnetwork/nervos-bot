@@ -163,6 +163,7 @@ class GithubBot
   end
 
   def try_hold_pull_request(payload)
+    next if payload['sender']['login'] == 'nervos-bot[bot]'
     unless payload['action'] == 'opened' || (payload['changes'] && payload['changes']['title'])
       return
     end
@@ -176,29 +177,18 @@ class GithubBot
     to_title = payload['pull_request']['title']
     to_hold = to_title.include?('HOLD') || to_title.include?('✋') || to_title.include?('WIP')
 
-    labels = payload['pull_request']['labels']
-    default_branch = payload['repository']['default_branch']
-    base = payload['pull_request']['base']['ref']
-    should_backport = (to_title.include?('fix:') || to_title.include?('bug:')) && default_branch == base
-    backported = labels.any? {|l| l['name'].start_with?('backport')}
-
     # HOLD
-    if (should_backport && !backported) || (!from_hold && to_hold)
-      body = "Hold as requested by @#{payload['sender']['login']}."
-      if should_backport
-        body = "Hold as it seems this PR should be backported."
-      end
+    if !from_hold && to_hold
       installation_client.create_pull_request_review(
         payload['repository']['id'],
         payload['pull_request']['number'],
-        body: body,
+        body: "Hold as requested by @#{payload['sender']['login']}."
         event: 'REQUEST_CHANGES'
       )
-      return
     end
 
     # UNHOLD
-    if (should_backport && backported) || (from_hold && !to_hold)
+    if from_hold && !to_hold
       installation_client.pull_request_reviews(
         payload['repository']['id'],
         payload['pull_request']['number']
@@ -212,6 +202,31 @@ class GithubBot
           "Unhold as requested by @#{payload['sender']['login']}."
         )
       end
+    end
+
+    default_branch = payload['repository']['default_branch']
+    base = payload['pull_request']['base']['ref']
+    from_is_fix = from_title.include?('fix:') || from_title.include?('bug:')
+    to_is_fix = to_title.include?('fix:') || to_title.include?('bug:')
+    should_backport = default_branch == base && !from_is_fix && to_is_fix
+
+    if should_backport
+      if from_hold && !to_hold
+        # add [HOLD]
+        title = payload['pull_request']['title']
+        new_title = ['[HOLD]', title].join(' ')
+        installation_client.update_pull_request(
+          payload['repository']['id'],
+          payload['pull_request']['number'],
+          title: new_title
+        )
+      end
+      installation_client.create_pull_request_review(
+        payload['repository']['id'],
+        payload['pull_request']['number'],
+        body: "Hold as the PR seems must be backported."
+        event: 'REQUEST_CHANGES'
+      )
     end
   end
 
