@@ -2,11 +2,13 @@
 
 class GithubBotBrain
   attr_accessor :dummy_ci_projects
+  attr_accessor :backport_projects
   attr_accessor :pull_requests_to_tg
   attr_accessor :reviewers
 
   def initialize
     @dummy_ci_projects = ENV['GITHUB_DUMMY_CI_PROJECTS'].to_s.split(',')
+    @backport_projects = ENV['GITHUB_BACKPORT_PROJECTS'].to_s.split(',')
 
     @pull_requests_to_tg = {}
     @reviewers = {}

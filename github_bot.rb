@@ -204,6 +204,8 @@ class GithubBot
       end
     end
 
+    return unless brain.backport_projects.include?(payload['repository']['name'])
+
     default_branch = payload['repository']['default_branch']
     base = payload['pull_request']['base']['ref']
     from_is_fix = from_title.include?('fix:') || from_title.include?('bug:')
