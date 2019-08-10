@@ -179,20 +179,15 @@ class GithubBot
     labels = payload['pull_request']['labels']
     default_branch = payload['repository']['default_branch']
     base = payload['pull_request']['base']['ref']
-    should_backport = (to_title.include?('fix:') || to_title.include?('bug:')) && default_branch == base && labels.none? {|l| l.start_with?('backport')}
-
-    if should_backport
-      installation_client.create_pull_request_review(
-        payload['repository']['id'],
-        payload['pull_request']['number'],
-        body: "Hold since it seems the PR should be backported.",
-        event: 'REQUEST_CHANGES'
-      )
-      return
-    end
+    should_backport = (to_title.include?('fix:') || to_title.include?('bug:')) && default_branch == base
+    backported = labels.any? {|l| l.start_with?('backport')}
 
     # HOLD
-    if !from_hold && to_hold
+    if (should_backport && !backported) || (!from_hold && to_hold)
+      body = "Hold as requested by @#{payload['sender']['login']}."
+      if should_backport
+        body = "Hold as it seems this PR should be backported."
+      end
       installation_client.create_pull_request_review(
         payload['repository']['id'],
         payload['pull_request']['number'],
@@ -203,7 +198,7 @@ class GithubBot
     end
 
     # UNHOLD
-    if from_hold && !to_hold
+    if (should_backport && backported) || (from_hold && !to_hold)
       installation_client.pull_request_reviews(
         payload['repository']['id'],
         payload['pull_request']['number']
