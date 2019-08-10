@@ -182,7 +182,7 @@ class GithubBot
       installation_client.create_pull_request_review(
         payload['repository']['id'],
         payload['pull_request']['number'],
-        body: "Hold as requested by @#{payload['sender']['login']}."
+        body: "Hold as requested by @#{payload['sender']['login']}.",
         event: 'REQUEST_CHANGES'
       )
     end
