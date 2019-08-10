@@ -176,6 +176,21 @@ class GithubBot
     to_title = payload['pull_request']['title']
     to_hold = to_title.include?('HOLD') || to_title.include?('✋') || to_title.include?('WIP')
 
+    labels = payload['pull_request']['labels']
+    default_branch = payload['repository']['default_branch']
+    base = payload['pull_request']['base']['ref']
+    should_backport = (to_title.include?('fix:') || to_title.include?('bug:')) && default_branch == base && labels.none? {|l| l.start_with?('backport')}
+
+    if should_backport
+      installation_client.create_pull_request_review(
+        payload['repository']['id'],
+        payload['pull_request']['number'],
+        body: "Hold since it seems the PR should be backported.",
+        event: 'REQUEST_CHANGES'
+      )
+      return
+    end
+
     # HOLD
     if !from_hold && to_hold
       installation_client.create_pull_request_review(
@@ -184,6 +199,7 @@ class GithubBot
         body: "Hold as requested by @#{payload['sender']['login']}.",
         event: 'REQUEST_CHANGES'
       )
+      return
     end
 
     # UNHOLD
