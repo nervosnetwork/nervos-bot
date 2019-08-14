@@ -330,7 +330,7 @@ class GithubBot
         chat_id: chat_id,
         parse_mode: 'HTML',
         text: <<-HTML.gsub(/^ {10}/, '')
-          <b>Backport Failed</b>: <a href="url">#{title}</a> #{CGI.escapeHTML(payload['issue']['title'])}
+          <b>Backport Failed</b>: <a href="#{url}">#{title}</a> #{CGI.escapeHTML(payload['issue']['title'])}
         HTML
       )
     end
