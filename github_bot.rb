@@ -113,6 +113,8 @@ class GithubBot
         repository_id = repository['id']
         issue = payload['issue']
         installation_client.add_labels_to_an_issue(repository_id, issue['number'], ['s:ready-to-merge'])
+      when /The backport to .* failed:/
+        notify_backport_failure(payload)
       end
     end
   end
@@ -226,7 +228,7 @@ class GithubBot
       installation_client.create_pull_request_review(
         payload['repository']['id'],
         payload['pull_request']['number'],
-        body: "Please review whether this PR has to backport.",
+        body: "Please review whether this PR has to backport. Add a label `backport rc/${VERSION}` if it does, otherwise just remove `[HOLD]` from the title.",
         event: 'REQUEST_CHANGES'
       )
     end
@@ -317,5 +319,20 @@ class GithubBot
     }
 
     post_check_run(repo, request)
+  end
+
+  def notify_backport_failure(payload)
+    url = payload['comment']['html_url']
+    title = "#{payload['repository']['name']}\##{payload['issue']['number']}"
+
+    brain.backport_failures_to_tg.fetch(payload['repository']['name'], []).each do |chat_id|
+      @tg.api.send_message(
+        chat_id: chat_id,
+        parse_mode: 'HTML',
+        text: <<-HTML.gsub(/^ {10}/, '')
+          <b>Backport Failed</b>: <a href="url">#{title}</a> #{CGI.escapeHTML(pull_request['issue']['title'])}
+        HTML
+      )
+    end
   end
 end
