@@ -210,27 +210,20 @@ class GithubBot
 
     default_branch = payload['repository']['default_branch']
     base = payload['pull_request']['base']['ref']
-    from_is_fix = from_title.include?('fix:') || from_title.include?('bug:')
-    to_is_fix = to_title.include?('fix:') || to_title.include?('bug:')
+    from_is_fix = from_title.include?('fix:') || from_title.include?('bug:') || from_title.split.include?('bug')
+    to_is_fix = to_title.include?('fix:') || to_title.include?('bug:') || to_title.split.include?('bug')
     should_backport = default_branch == base && !from_is_fix && to_is_fix
 
     if should_backport
-      if !to_hold
-        # add [HOLD]
-        title = payload['pull_request']['title']
-        new_title = ['[HOLD]', title].join(' ')
-        installation_client.update_pull_request(
+      refs = installation_client.refs(payload['repository']['id'], 'heads/rc/').map{|ref| ref['ref'] }
+      latest_rc = refs.sort_by{|ref| Gem::Version.new(ref.split('/v').last) }.last
+      if latest_rc then
+        installation_client.add_labels_to_an_issue(
           payload['repository']['id'],
           payload['pull_request']['number'],
-          title: new_title
+          ["backport rc/#{latest_rc.split('/').last}"]
         )
       end
-      installation_client.create_pull_request_review(
-        payload['repository']['id'],
-        payload['pull_request']['number'],
-        body: "Please review whether this PR has to backport. Add a label `backport rc/${VERSION}` if it does, otherwise just remove `[HOLD]` from the title.",
-        event: 'REQUEST_CHANGES'
-      )
     end
   end
 
