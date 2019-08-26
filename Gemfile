@@ -14,4 +14,5 @@ gem 'telegram-bot-ruby'
 group :development do
   gem 'mina'
   gem 'minitest'
+  gem 'pry'
 end
