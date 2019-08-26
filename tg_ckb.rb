@@ -6,11 +6,15 @@ require 'cgi'
 token = ENV.fetch('TELEGRAM_CKB_ACCESS_TOKEN')
 
 def on_message(bot, message)
+  from = message.from || {}
+
   case message.text
   when '/start'
-    bot.api.send_message(chat_id: message.chat.id, text: "Hello, #{message.from.first_name}")
+    greeting = ['Hello', from.first_name].compact.join(', ')
+    bot.api.send_message(chat_id: message.chat.id, text: greeting)
   when '/stop'
-    bot.api.send_message(chat_id: message.chat.id, text: "Bye, #{message.from.first_name}")
+    bye = ['Bye', from.first_name].compact.join(', ')
+    bot.api.send_message(chat_id: message.chat.id, text: bye)
   when '/chatid'
     bot.api.send_message(chat_id: message.chat.id, text: "The chat id is #{message.chat.id}")
   end
