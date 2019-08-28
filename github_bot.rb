@@ -173,10 +173,10 @@ class GithubBot
     from_title = if payload['action'] == 'opened'
                    ''
                  else
-                   payload['changes']['title']['from']
+                   (payload['changes']['title']['from'] || "").downcase
                  end
     from_hold = from_title.include?('HOLD') || from_title.include?('✋') || from_title.include?('WIP')
-    to_title = payload['pull_request']['title']
+    to_title = payload['pull_request']['title'].downcase
     to_hold = to_title.include?('HOLD') || to_title.include?('✋') || to_title.include?('WIP')
 
     # HOLD
@@ -210,8 +210,8 @@ class GithubBot
 
     default_branch = payload['repository']['default_branch']
     base = payload['pull_request']['base']['ref']
-    from_is_fix = from_title.include?('fix:') || from_title.include?('bug:') || from_title.split.include?('bug')
-    to_is_fix = to_title.include?('fix:') || to_title.include?('bug:') || to_title.split.include?('bug')
+    from_is_fix = from_title.include?('fix:') || from_title.split.include?('fix')
+    to_is_fix = to_title.include?('fix:') || to_title.split.include?('fix')
     should_backport = default_branch == base && !from_is_fix && to_is_fix
 
     if should_backport
