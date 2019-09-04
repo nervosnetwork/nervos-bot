@@ -175,9 +175,9 @@ class GithubBot
                  else
                    (payload['changes']['title']['from'] || "").downcase
                  end
-    from_hold = from_title.include?('HOLD') || from_title.include?('✋') || from_title.include?('WIP')
+    from_hold = from_title.include?('hold') || from_title.include?('✋') || from_title.include?('wip')
     to_title = payload['pull_request']['title'].downcase
-    to_hold = to_title.include?('HOLD') || to_title.include?('✋') || to_title.include?('WIP')
+    to_hold = to_title.include?('hold') || to_title.include?('✋') || to_title.include?('wip')
 
     # HOLD
     if !from_hold && to_hold
