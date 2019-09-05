@@ -77,7 +77,7 @@ class GithubBot
 
     case payload['action']
     when 'opened'
-      assign_reviewer(payload)
+      # assign_reviewer(payload)
       try_add_hotfix_label(payload)
       post_dummy_ci_status(payload['repository'], payload['pull_request']['head']['sha'])
     when 'synchronize'
