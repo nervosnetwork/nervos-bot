@@ -83,6 +83,7 @@ class GithubBot
     when 'synchronize'
       post_dummy_ci_status(payload['repository'], payload['pull_request']['head']['sha'])
     when 'closed'
+      create_issue_to_backport(payload) if payload['pull_request']['merged']
       notify_pull_requests_merged(payload) if payload['pull_request']['merged']
     end
   end
@@ -113,8 +114,6 @@ class GithubBot
         repository_id = repository['id']
         issue = payload['issue']
         installation_client.add_labels_to_an_issue(repository_id, issue['number'], ['s:ready-to-merge'])
-      when /The backport to .* failed:/
-        notify_backport_failure(payload)
       end
     end
   end
@@ -317,18 +316,16 @@ class GithubBot
     post_check_run(repo, request)
   end
 
-  def notify_backport_failure(payload)
-    url = payload['comment']['html_url']
-    title = "#{payload['repository']['name']}\##{payload['issue']['number']}"
-
-    brain.backport_failures_to_tg.fetch(payload['repository']['name'], []).each do |chat_id|
-      @tg.api.send_message(
-        chat_id: chat_id,
-        parse_mode: 'HTML',
-        text: <<-HTML.gsub(/^ {10}/, '')
-          <b>Backport Failed</b>: <a href="#{url}">#{title}</a> #{CGI.escapeHTML(payload['issue']['title'])}
-        HTML
-      )
+  def create_issue_to_backport(payload)
+    pr = payload['pull_request']
+    if pr['labels'].any? {|label| label['name'].start_with?('backport ') }
+      title = "Backport \##{pr['number']}"
+      body = "#{title} `#{pr['labels'].map{|label| label['name']}.join('`, `')}`"
+      opts = {}
+      if can_write(pr['user']['login'], payload['repository']['id'])
+        opts[:assignee] = pr['user']['login']
+      end
+      installation_client.create_issue(payload['repository']['id'], title, body, opts)
     end
   end
 end
