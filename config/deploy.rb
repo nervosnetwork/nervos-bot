@@ -10,7 +10,7 @@ require 'mina/git'
 #   branch       - Branch name to deploy. (needed by mina/git)
 
 set :application_name, 'nervosbot'
-set :domain, 'nervos-bot'
+set :domain, 'ckb-nervos-bot'
 set :deploy_to, '/var/deploy/nervosbot'
 set :repository, 'https://github.com/nervosnetwork/nervos-bot.git'
 set :branch, 'master'
