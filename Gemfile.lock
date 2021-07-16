@@ -41,6 +41,7 @@ GEM
     minitest (5.11.3)
     multipart-post (2.1.1)
     mustermann (1.0.3)
+    nio4r (2.5.7)
     octokit (4.13.0)
       sawyer (~> 0.8.0, >= 0.5.3)
     open4 (1.3.4)
@@ -48,7 +49,8 @@ GEM
       coderay (~> 1.1.0)
       method_source (~> 0.9.0)
     public_suffix (4.0.6)
-    puma (3.12.4)
+    puma (4.3.8)
+      nio4r (~> 2.0)
     rack (2.2.2)
     rack-protection (2.0.5)
       rack
